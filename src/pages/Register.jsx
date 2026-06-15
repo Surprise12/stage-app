@@ -1,4 +1,4 @@
-// src/pages/Register.jsx (Complete Redesign)
+// src/pages/Register.jsx
 import React, { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
@@ -7,7 +7,6 @@ export default function Register() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [username, setUsername] = useState('')
-  const [displayName, setDisplayName] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const navigate = useNavigate()
@@ -23,8 +22,7 @@ export default function Register() {
       options: {
         data: { 
           username, 
-          display_name: displayName || username,
-          avatar_url: `https://ui-avatars.com/api/?name=${(displayName || username)[0]}&background=7c3aed&color=fff`
+          display_name: username
         }
       }
     })
@@ -47,19 +45,10 @@ export default function Register() {
 
   return (
     <div className="auth-container">
-      <div className="auth-background">
-        <div className="auth-blob blob-1"></div>
-        <div className="auth-blob blob-2"></div>
-        <div className="auth-blob blob-3"></div>
-      </div>
-      
       <div className="auth-card">
         <div className="auth-logo">
-          <div className="auth-logo-icon">
-            <span>S</span>
-          </div>
-          <h1>Join <span>SocialVibe</span></h1>
-          <p>Start your creator journey today</p>
+          <div className="circle-logo">S</div>
+          <h1>Join SocialVibe</h1>
         </div>
         
         <form onSubmit={handleRegister}>
@@ -67,7 +56,7 @@ export default function Register() {
             <i className="fas fa-user"></i>
             <input 
               type="text" 
-              placeholder="Username *" 
+              placeholder="Username" 
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               required
@@ -75,20 +64,10 @@ export default function Register() {
           </div>
           
           <div className="input-group">
-            <i className="fas fa-user-circle"></i>
-            <input 
-              type="text" 
-              placeholder="Display Name (Optional)" 
-              value={displayName}
-              onChange={(e) => setDisplayName(e.target.value)}
-            />
-          </div>
-          
-          <div className="input-group">
             <i className="fas fa-envelope"></i>
             <input 
               type="email" 
-              placeholder="Email address *" 
+              placeholder="Email address" 
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
@@ -99,7 +78,7 @@ export default function Register() {
             <i className="fas fa-lock"></i>
             <input 
               type="password" 
-              placeholder="Password (min 6 characters) *" 
+              placeholder="Password" 
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
@@ -109,7 +88,7 @@ export default function Register() {
           {error && <div className="auth-error">{error}</div>}
           
           <button type="submit" className="auth-btn-primary" disabled={loading}>
-            {loading ? <div className="spinner-small"></div> : 'Create Account'}
+            {loading ? 'Creating account...' : 'Sign Up'}
           </button>
         </form>
         
@@ -123,8 +102,7 @@ export default function Register() {
         </button>
         
         <div className="auth-footer">
-          Already have an account?{' '}
-          <Link to="/login">Sign in</Link>
+          Already have an account? <Link to="/login">Sign in</Link>
         </div>
       </div>
     </div>

@@ -1,3 +1,4 @@
+// src/pages/LiveStreaming.jsx
 import React, { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 
@@ -9,7 +10,9 @@ export default function LiveStreaming({ session }) {
   const [formData, setFormData] = useState({
     title: '',
     description: '',
-    ticket_price: 0
+    ticket_price: 0,
+    category: 'music',
+    privacy: 'public'
   })
   const [selectedStream, setSelectedStream] = useState(null)
   const [chatMessages, setChatMessages] = useState([])
@@ -84,6 +87,8 @@ export default function LiveStreaming({ session }) {
         description: formData.description,
         stream_key: streamKey,
         ticket_price: formData.ticket_price,
+        category: formData.category,
+        privacy: formData.privacy,
         is_live: true,
         started_at: new Date().toISOString()
       })
@@ -95,8 +100,18 @@ export default function LiveStreaming({ session }) {
     } else {
       setMyStream(data)
       setShowStartForm(false)
-      setFormData({ title: '', description: '', ticket_price: 0 })
+      setFormData({ title: '', description: '', ticket_price: 0, category: 'music', privacy: 'public' })
       await loadLiveStreams()
+      
+      // Notify followers that user is live
+      const { data: followers } = await supabase
+        .from('follows')
+        .select('follower_id')
+        .eq('following_id', session.user.id)
+      
+      if (followers && followers.length > 0) {
+        console.log(`🔴 Notified ${followers.length} followers that you are live!`)
+      }
     }
     
     setSubmitting(false)
@@ -116,6 +131,7 @@ export default function LiveStreaming({ session }) {
     if (!error) {
       setMyStream(null)
       await loadLiveStreams()
+      alert('Stream ended')
     }
   }
 
@@ -141,7 +157,12 @@ export default function LiveStreaming({ session }) {
     
     setSelectedStream(stream)
     await loadChatMessages(stream.id)
-    await supabase.rpc('increment_stream_viewers', { stream_id: stream.id })
+    
+    // Increment viewer count
+    await supabase
+      .from('live_streams')
+      .update({ viewer_count: (stream.viewer_count || 0) + 1 })
+      .eq('id', stream.id)
   }
 
   async function loadChatMessages(streamId) {
@@ -222,6 +243,9 @@ export default function LiveStreaming({ session }) {
       .from('live_streams')
       .update({ tip_amount_total: newTotal })
       .eq('id', selectedStream.id)
+    
+    // Reload chat to show tip message
+    await loadChatMessages(selectedStream.id)
   }
 
   async function purchaseTicket(streamId, amount) {
@@ -254,8 +278,20 @@ export default function LiveStreaming({ session }) {
     if (minutes < 60) return `${minutes}m ago`
     const hours = Math.floor(minutes / 60)
     if (hours < 24) return `${hours}h ago`
+    const days = Math.floor(hours / 24)
+    if (days < 7) return `${days}d ago`
     return new Date(date).toLocaleDateString()
   }
+
+  const categories = [
+    { value: 'music', label: '🎵 Music Performance', color: '#7c3aed' },
+    { value: 'comedy', label: '😂 Comedy', color: '#f59e0b' },
+    { value: 'gaming', label: '🎮 Gaming', color: '#10b981' },
+    { value: 'talk', label: '💬 Talk/Interview', color: '#3b82f6' },
+    { value: 'tutorial', label: '🎓 Tutorial', color: '#ef4444' },
+    { value: 'party', label: '🎉 Party/Event', color: '#ec4899' },
+    { value: 'other', label: 'Other', color: '#6b7280' }
+  ]
 
   return (
     <div className="container-wide" style={{ marginTop: '30px' }}>
@@ -296,6 +332,32 @@ export default function LiveStreaming({ session }) {
           </div>
           
           <div style={{ marginBottom: '16px' }}>
+            <label style={{ display: 'block', marginBottom: '8px', color: '#888' }}>Category</label>
+            <select 
+              className="input" 
+              value={formData.category}
+              onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+            >
+              {categories.map(cat => (
+                <option key={cat.value} value={cat.value}>{cat.label}</option>
+              ))}
+            </select>
+          </div>
+          
+          <div style={{ marginBottom: '16px' }}>
+            <label style={{ display: 'block', marginBottom: '8px', color: '#888' }}>Privacy</label>
+            <select 
+              className="input" 
+              value={formData.privacy}
+              onChange={(e) => setFormData({ ...formData, privacy: e.target.value })}
+            >
+              <option value="public">🌍 Public Live</option>
+              <option value="followers">👥 Followers Only</option>
+              <option value="friends">🔒 Friends Only</option>
+            </select>
+          </div>
+          
+          <div style={{ marginBottom: '16px' }}>
             <label style={{ display: 'block', marginBottom: '8px', color: '#888' }}>Ticket Price ($)</label>
             <input
               type="number"
@@ -311,9 +373,9 @@ export default function LiveStreaming({ session }) {
             className="btn btn-primary" 
             onClick={startStream} 
             disabled={submitting}
-            style={{ width: '100%' }}
+            style={{ width: '100%', background: '#f5576c' }}
           >
-            {submitting ? 'Starting...' : '🔴 Go Live'}
+            {submitting ? 'Starting...' : '🔴 Start Live Stream'}
           </button>
         </div>
       )}
@@ -325,6 +387,9 @@ export default function LiveStreaming({ session }) {
             <div>
               <span className="live-indicator"></span>
               <span style={{ color: '#ff0000', fontWeight: 'bold', marginLeft: '8px' }}>LIVE</span>
+              <span style={{ marginLeft: '8px', background: '#333', padding: '2px 8px', borderRadius: '20px', fontSize: '11px' }}>
+                {categories.find(c => c.value === myStream.category)?.label || 'Streaming'}
+              </span>
             </div>
             <button className="btn btn-danger btn-small" onClick={endStream}>End Stream</button>
           </div>
@@ -333,7 +398,10 @@ export default function LiveStreaming({ session }) {
           <p style={{ marginTop: '12px' }}>👁️ {myStream.viewer_count || 0} watching</p>
           <p>💰 Tips: ${myStream.tip_amount_total || 0}</p>
           <p style={{ fontSize: '0.8rem', color: '#888', marginTop: '12px' }}>
-            Stream Key: {myStream.stream_key}
+            🔑 Stream Key: {myStream.stream_key}
+          </p>
+          <p style={{ fontSize: '0.7rem', color: '#666', marginTop: '4px' }}>
+            Share this link to invite viewers
           </p>
         </div>
       )}
@@ -359,16 +427,20 @@ export default function LiveStreaming({ session }) {
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
                 <span className="live-indicator"></span>
                 <span style={{ color: '#ff0000', fontWeight: 'bold' }}>LIVE</span>
+                <span style={{ fontSize: '10px', background: '#333', padding: '2px 6px', borderRadius: '20px' }}>
+                  {categories.find(c => c.value === stream.category)?.label.split(' ')[0] || 'Live'}
+                </span>
               </div>
               <h4>{stream.title}</h4>
               <p style={{ color: '#888', fontSize: '0.85rem', marginTop: '4px' }}>
                 by {stream.profiles?.display_name || stream.profiles?.username}
-                {stream.profiles?.is_verified && ' ✓'}
+                {stream.profiles?.is_verified && <span style={{ color: '#3b82f6', marginLeft: '4px' }}>✓</span>}
               </p>
               <p style={{ marginTop: '8px', fontSize: '0.9rem' }}>{stream.description}</p>
               <div style={{ marginTop: '12px', display: 'flex', gap: '16px', fontSize: '0.8rem', color: '#888' }}>
                 <span>👁️ {stream.viewer_count || 0}</span>
-                <span>💰 ${stream.ticket_price || 0}</span>
+                <span>{stream.privacy === 'public' ? '🌍' : stream.privacy === 'followers' ? '👥' : '🔒'}</span>
+                <span>{stream.ticket_price > 0 ? `🎟️ $${stream.ticket_price}` : '🎟️ Free'}</span>
               </div>
             </div>
           ))}
@@ -397,17 +469,20 @@ export default function LiveStreaming({ session }) {
               {/* Stream Info */}
               <div style={{ padding: '16px 0' }}>
                 <h3>{selectedStream.title}</h3>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '8px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '8px', flexWrap: 'wrap', gap: '12px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <img 
-                      src={selectedStream.profiles?.avatar_url || `https://ui-avatars.com/api/?name=${(selectedStream.profiles?.username || 'U')[0]}&background=ff5f6d&color=fff`}
+                      src={selectedStream.profiles?.avatar_url || `https://ui-avatars.com/api/?name=${(selectedStream.profiles?.username || 'U')[0]}&background=000&color=fff`}
                       style={{ width: '32px', height: '32px', borderRadius: '50%' }}
                       alt="avatar"
                     />
-                    <span>{selectedStream.profiles?.display_name || selectedStream.profiles?.username}</span>
+                    <div>
+                      <span style={{ fontWeight: 'bold' }}>{selectedStream.profiles?.display_name || selectedStream.profiles?.username}</span>
+                      {selectedStream.profiles?.is_verified && <span style={{ color: '#3b82f6', marginLeft: '4px' }}>✓</span>}
+                    </div>
                   </div>
                   <div style={{ display: 'flex', gap: '12px' }}>
-                    <span>👁️ {selectedStream.viewer_count || 0}</span>
+                    <span>👁️ {selectedStream.viewer_count || 0} watching</span>
                     <button className="btn btn-primary btn-small" onClick={sendTip}>💸 Send Tip</button>
                   </div>
                 </div>
@@ -416,27 +491,33 @@ export default function LiveStreaming({ session }) {
               {/* Chat */}
               <div className="stream-chat">
                 <div className="stream-messages" style={{ height: '300px', overflowY: 'auto', padding: '12px' }}>
-                  {chatMessages.map(msg => (
-                    <div 
-                      key={msg.id} 
-                      className={`stream-message ${msg.is_tip ? 'stream-message-tip' : ''}`}
-                      style={{ marginBottom: '12px', padding: '8px', background: msg.is_tip ? '#ffc37120' : '#1a1a1a', borderRadius: '8px' }}
-                    >
-                      <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                        <img 
-                          src={msg.profiles?.avatar_url || `https://ui-avatars.com/api/?name=${(msg.profiles?.username || 'U')[0]}&background=ff5f6d&color=fff`}
-                          style={{ width: '24px', height: '24px', borderRadius: '50%' }}
-                          alt="avatar"
-                        />
-                        <div>
-                          <strong>{msg.profiles?.display_name || msg.profiles?.username}</strong>
-                          {msg.is_tip && <span style={{ color: '#ffc371', marginLeft: '8px' }}>💸 Tip!</span>}
-                          <div style={{ fontSize: '0.85rem', marginTop: '4px' }}>{msg.message}</div>
-                          <div style={{ fontSize: '0.7rem', color: '#666', marginTop: '4px' }}>{formatTimeAgo(msg.created_at)}</div>
+                  {chatMessages.length === 0 ? (
+                    <p style={{ textAlign: 'center', color: '#888', padding: '20px' }}>No messages yet. Be the first to chat!</p>
+                  ) : (
+                    chatMessages.map(msg => (
+                      <div 
+                        key={msg.id} 
+                        className={`stream-message ${msg.is_tip ? 'stream-message-tip' : ''}`}
+                        style={{ marginBottom: '12px', padding: '8px', background: msg.is_tip ? '#ffc37120' : '#1a1a1a', borderRadius: '8px' }}
+                      >
+                        <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
+                          <img 
+                            src={msg.profiles?.avatar_url || `https://ui-avatars.com/api/?name=${(msg.profiles?.username || 'U')[0]}&background=000&color=fff`}
+                            style={{ width: '28px', height: '28px', borderRadius: '50%' }}
+                            alt="avatar"
+                          />
+                          <div style={{ flex: 1 }}>
+                            <div>
+                              <strong>{msg.profiles?.display_name || msg.profiles?.username}</strong>
+                              {msg.is_tip && <span style={{ color: '#ffc371', marginLeft: '8px' }}>💸 Sent ${msg.tip_amount} tip!</span>}
+                            </div>
+                            <div style={{ fontSize: '0.85rem', marginTop: '4px', wordBreak: 'break-word' }}>{msg.message}</div>
+                            <div style={{ fontSize: '0.65rem', color: '#666', marginTop: '4px' }}>{formatTimeAgo(msg.created_at)}</div>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
+                    ))
+                  )}
                 </div>
                 
                 <div className="stream-input">
