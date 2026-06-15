@@ -1,3 +1,4 @@
+// src/pages/Register.jsx (Complete Redesign)
 import React, { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
@@ -6,6 +7,7 @@ export default function Register() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [username, setUsername] = useState('')
+  const [displayName, setDisplayName] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const navigate = useNavigate()
@@ -19,7 +21,11 @@ export default function Register() {
       email,
       password,
       options: {
-        data: { username, display_name: username }
+        data: { 
+          username, 
+          display_name: displayName || username,
+          avatar_url: `https://ui-avatars.com/api/?name=${(displayName || username)[0]}&background=7c3aed&color=fff`
+        }
       }
     })
 
@@ -32,46 +38,94 @@ export default function Register() {
     setLoading(false)
   }
 
+  const handleGoogleLogin = async () => {
+    await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: { redirectTo: window.location.origin }
+    })
+  }
+
   return (
-    <div className="container" style={{ maxWidth: '450px', marginTop: '80px' }}>
-      <div className="card">
-        <h1 style={{ marginBottom: '24px', textAlign: 'center' }}>Join Stage</h1>
+    <div className="auth-container">
+      <div className="auth-background">
+        <div className="auth-blob blob-1"></div>
+        <div className="auth-blob blob-2"></div>
+        <div className="auth-blob blob-3"></div>
+      </div>
+      
+      <div className="auth-card">
+        <div className="auth-logo">
+          <div className="auth-logo-icon">
+            <span>S</span>
+          </div>
+          <h1>Join <span>SocialVibe</span></h1>
+          <p>Start your creator journey today</p>
+        </div>
+        
         <form onSubmit={handleRegister}>
-          <input
-            type="text"
-            placeholder="Username"
-            className="input"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-            required
-            style={{ marginBottom: '16px' }}
-          />
-          <input
-            type="email"
-            placeholder="Email"
-            className="input"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-            style={{ marginBottom: '16px' }}
-          />
-          <input
-            type="password"
-            placeholder="Password (min 6 characters)"
-            className="input"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-            style={{ marginBottom: '24px' }}
-          />
-          {error && <p style={{ color: '#ff5f6d', marginBottom: '16px', fontSize: '0.9rem' }}>{error}</p>}
-          <button type="submit" className="btn btn-primary" style={{ width: '100%' }} disabled={loading}>
-            {loading ? 'Creating account...' : 'Sign Up'}
+          <div className="input-group">
+            <i className="fas fa-user"></i>
+            <input 
+              type="text" 
+              placeholder="Username *" 
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              required
+            />
+          </div>
+          
+          <div className="input-group">
+            <i className="fas fa-user-circle"></i>
+            <input 
+              type="text" 
+              placeholder="Display Name (Optional)" 
+              value={displayName}
+              onChange={(e) => setDisplayName(e.target.value)}
+            />
+          </div>
+          
+          <div className="input-group">
+            <i className="fas fa-envelope"></i>
+            <input 
+              type="email" 
+              placeholder="Email address *" 
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+            />
+          </div>
+          
+          <div className="input-group">
+            <i className="fas fa-lock"></i>
+            <input 
+              type="password" 
+              placeholder="Password (min 6 characters) *" 
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+            />
+          </div>
+          
+          {error && <div className="auth-error">{error}</div>}
+          
+          <button type="submit" className="auth-btn-primary" disabled={loading}>
+            {loading ? <div className="spinner-small"></div> : 'Create Account'}
           </button>
         </form>
-        <p style={{ textAlign: 'center', marginTop: '24px', color: '#888' }}>
-          Already have an account? <Link to="/login" style={{ color: '#ff5f6d' }}>Login</Link>
-        </p>
+        
+        <div className="auth-divider">
+          <span>or</span>
+        </div>
+        
+        <button className="auth-btn-google" onClick={handleGoogleLogin}>
+          <i className="fab fa-google"></i>
+          Continue with Google
+        </button>
+        
+        <div className="auth-footer">
+          Already have an account?{' '}
+          <Link to="/login">Sign in</Link>
+        </div>
       </div>
     </div>
   )
