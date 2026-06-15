@@ -1,20 +1,17 @@
 import React, { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 import PostCard from '../components/PostCard'
-import StoryCircle from '../components/StoryCircle'
-import Layout from '../components/Layout'
+import LeftSidebar from '../components/LeftSidebar'
+import RightSidebar from '../components/RightSidebar'
 
 export default function Home({ session }) {
   const [posts, setPosts] = useState([])
   const [loading, setLoading] = useState(true)
   const [newPostContent, setNewPostContent] = useState('')
-  const [selectedImage, setSelectedImage] = useState(null)
-  const [imagePreview, setImagePreview] = useState(null)
-  const [stories, setStories] = useState([])
+  const [showCreatePost, setShowCreatePost] = useState(false)
 
   useEffect(() => {
     loadPosts()
-    loadStories()
   }, [])
 
   async function loadPosts() {
@@ -28,8 +25,7 @@ export default function Home({ session }) {
           username,
           display_name,
           avatar_url,
-          is_verified,
-          role
+          is_verified
         )
       `)
       .order('created_at', { ascending: false })
@@ -38,171 +34,109 @@ export default function Home({ session }) {
     setLoading(false)
   }
 
-  async function loadStories() {
-    // Load friends with recent stories
-    const { data } = await supabase
-      .from('profiles')
-      .select('id, username, display_name, avatar_url, is_verified')
-      .neq('id', session.user.id)
-      .limit(10)
-    
-    if (data) setStories(data)
-  }
-
   async function createPost() {
-    if (!newPostContent.trim() && !selectedImage) {
-      alert('Please write something or add an image')
-      return
-    }
-    
-    let imageUrl = null
-    if (selectedImage) {
-      const fileExt = selectedImage.name.split('.').pop()
-      const fileName = `${session.user.id}_${Date.now()}.${fileExt}`
-      const filePath = `${session.user.id}/${fileName}`
-      
-      const { error } = await supabase.storage
-        .from('post-images')
-        .upload(filePath, selectedImage)
-      
-      if (!error) {
-        const { data: { publicUrl } } = supabase.storage
-          .from('post-images')
-          .getPublicUrl(filePath)
-        imageUrl = publicUrl
-      }
-    }
+    if (!newPostContent.trim()) return
     
     const { error } = await supabase
       .from('posts')
       .insert({
         user_id: session.user.id,
-        content: newPostContent,
-        image_urls: imageUrl ? [imageUrl] : []
+        content: newPostContent
       })
     
     if (!error) {
       setNewPostContent('')
-      setSelectedImage(null)
-      setImagePreview(null)
+      setShowCreatePost(false)
       await loadPosts()
     }
   }
 
+  // Stories data
+  const stories = [
+    { name: 'Sarah Chen', avatar: 'S', image: 'https://picsum.photos/400/700?random=1' },
+    { name: 'Marcus Webb', avatar: 'M', image: 'https://picsum.photos/400/700?random=2' },
+    { name: 'Elena Rodriguez', avatar: 'E', image: 'https://picsum.photos/400/700?random=3' },
+  ]
+
   return (
-    <Layout session={session}>
-      {/* Stories Row */}
-      <div className="glass-card" style={{ padding: '20px', marginBottom: '24px', overflowX: 'auto' }}>
-        <div style={{ display: 'flex', gap: '20px' }}>
-          {/* Your Story */}
-          <StoryCircle 
-            user={{ username: 'Your Story', avatar_url: session?.user?.user_metadata?.avatar_url }}
-            onClick={() => alert('Create story - coming soon')}
-          />
-          {stories.map(user => (
-            <StoryCircle 
-              key={user.id} 
-              user={user} 
-              onClick={() => alert(`View ${user.display_name}'s story`)}
-            />
-          ))}
-        </div>
-      </div>
+    <div className="main-container">
+      <LeftSidebar session={session} />
       
-      {/* Create Post Card */}
-      <div className="glass-card" style={{ padding: '20px', marginBottom: '24px' }}>
-        <div style={{ display: 'flex', gap: '12px', marginBottom: '16px' }}>
-          <img 
-            src={session?.user?.user_metadata?.avatar_url || `https://ui-avatars.com/api/?name=${session?.user?.email?.[0] || 'U'}&background=7c3aed&color=fff`}
-            style={{ width: '48px', height: '48px', borderRadius: '50%' }}
-            alt="avatar"
-          />
-          <textarea
-            className="input-modern"
-            rows="2"
-            placeholder={`What's on your mind, ${session?.user?.user_metadata?.display_name || 'Creator'}?`}
-            value={newPostContent}
-            onChange={(e) => setNewPostContent(e.target.value)}
-            style={{ flex: 1, resize: 'none' }}
-          />
+      <div className="feed-container">
+        {/* Stories Row */}
+        <div className="stories-wrapper">
+          <div className="stories-header">
+            <div className="story-tab active">Stories</div>
+            <div className="story-tab">Reels</div>
+            <div className="story-tab">Live</div>
+          </div>
+          <div className="stories-row">
+            <div className="story-card" onClick={() => setShowCreatePost(true)}>
+              <div className="story-avatar">+</div>
+              <div className="story-preview">Your Story</div>
+            </div>
+            {stories.map((story, i) => (
+              <div key={i} className="story-card" style={{ backgroundImage: `url(${story.image})` }}>
+                <div className="story-avatar">{story.avatar}</div>
+                <div className="story-preview">{story.name.split(' ')[0]}</div>
+              </div>
+            ))}
+          </div>
         </div>
-        
-        {imagePreview && (
-          <div style={{ position: 'relative', marginBottom: '12px' }}>
-            <img src={imagePreview} style={{ maxWidth: '200px', borderRadius: '12px' }} alt="preview" />
-            <button
-              onClick={() => {
-                setSelectedImage(null)
-                setImagePreview(null)
-              }}
-              style={{
-                position: 'absolute',
-                top: '-8px',
-                left: '192px',
-                background: '#ef4444',
-                borderRadius: '50%',
-                width: '24px',
-                height: '24px',
-                border: 'none',
-                color: 'white',
-                cursor: 'pointer'
-              }}
-            >
-              ×
-            </button>
+
+        {/* Create Post */}
+        <div className="create-post-box" onClick={() => setShowCreatePost(true)}>
+          <div className="post-input-row">
+            <div className="post-avatar">
+              <img src={session?.user?.user_metadata?.avatar_url || `https://ui-avatars.com/api/?name=${session?.user?.email?.[0] || 'U'}&background=000&color=fff`} style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }} alt="" />
+            </div>
+            <div className="post-input">What's on your mind, {session?.user?.user_metadata?.display_name?.split(' ')[0] || 'User'}?</div>
+          </div>
+          <div className="post-actions-row">
+            <div className="post-action"><i className="fas fa-circle" style={{ color: '#f5576c' }}></i> Live</div>
+            <div className="post-action"><i className="fas fa-image"></i> Photo</div>
+            <div className="post-action"><i className="fas fa-music"></i> Music</div>
+          </div>
+        </div>
+
+        {/* Create Post Modal */}
+        {showCreatePost && (
+          <div className="modal active" onClick={() => setShowCreatePost(false)}>
+            <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+              <div className="modal-title">Create Post</div>
+              <textarea 
+                className="form-textarea" 
+                placeholder="What's on your mind?" 
+                rows="4"
+                value={newPostContent}
+                onChange={(e) => setNewPostContent(e.target.value)}
+              ></textarea>
+              <button className="apply-btn" onClick={createPost}>Post</button>
+              <button className="secondary-btn" style={{ marginTop: '8px', width: '100%' }} onClick={() => setShowCreatePost(false)}>Cancel</button>
+            </div>
           </div>
         )}
         
-        <div style={{ display: 'flex', gap: '12px', borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '16px' }}>
-          <button 
-            className="btn btn-secondary" 
-            style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
-            onClick={() => document.getElementById('postImageInput').click()}
-          >
-            📷 Photo/Video
-          </button>
-          <button 
-            className="btn btn-primary" 
-            style={{ flex: 1 }}
-            onClick={createPost}
-          >
-            Post
-          </button>
-          <input
-            type="file"
-            id="postImageInput"
-            accept="image/*"
-            style={{ display: 'none' }}
-            onChange={(e) => {
-              const file = e.target.files[0]
-              if (file) {
-                setSelectedImage(file)
-                const reader = new FileReader()
-                reader.onload = (e) => setImagePreview(e.target.result)
-                reader.readAsDataURL(file)
-              }
-            }}
-          />
-        </div>
+        {/* Posts Feed */}
+        {loading ? (
+          <div className="spinner"></div>
+        ) : posts.length === 0 ? (
+          <div className="post-card" style={{ textAlign: 'center' }}>
+            <p style={{ color: '#888' }}>No posts yet. Be the first to post!</p>
+          </div>
+        ) : (
+          posts.map(post => (
+            <PostCard 
+              key={post.id} 
+              post={post} 
+              session={session} 
+              onPostUpdate={loadPosts} 
+            />
+          ))
+        )}
       </div>
       
-      {/* Posts Feed */}
-      {loading ? (
-        <div className="spinner"></div>
-      ) : posts.length === 0 ? (
-        <div className="glass-card" style={{ textAlign: 'center', padding: '40px' }}>
-          <p style={{ color: '#888' }}>No posts yet. Be the first to post!</p>
-        </div>
-      ) : (
-        posts.map(post => (
-          <PostCard 
-            key={post.id} 
-            post={post} 
-            session={session} 
-            onPostUpdate={loadPosts} 
-          />
-        ))
-      )}
-    </Layout>
+      <RightSidebar session={session} />
+    </div>
   )
 }

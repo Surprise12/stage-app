@@ -20,6 +20,13 @@ import Messaging from './components/Messaging'
 import EventsManager from './components/EventsManager'
 import GroupsManager from './components/GroupsManager'
 import Marketplace from './components/Marketplace'
+import BeatMarketplace from './pages/BeatMarketplace'
+import VirtualConcert from './components/VirtualConcert'
+import StudioBooking from './components/StudioBooking'
+import CollaborationFinder from './components/CollaborationFinder'
+import RoyaltySplit from './components/RoyaltySplit'
+import FanSubscriptions from './components/FanSubscriptions'
+import AudioUploader from './components/AudioUploader'
 
 function App() {
   const [session, setSession] = useState(null)
@@ -48,8 +55,11 @@ function App() {
       <BrowserRouter>
         <Navbar session={session} />
         <Routes>
+          {/* Auth Routes */}
           <Route path="/login" element={!session ? <Login /> : <Navigate to="/" />} />
           <Route path="/register" element={!session ? <Register /> : <Navigate to="/" />} />
+          
+          {/* Main Routes */}
           <Route path="/" element={
             <ProtectedRoute session={session}>
               <Home session={session} />
@@ -60,11 +70,64 @@ function App() {
               <Search />
             </ProtectedRoute>
           } />
+          <Route path="/profile/:id?" element={
+            <ProtectedRoute session={session}>
+              <Profile session={session} />
+            </ProtectedRoute>
+          } />
+          <Route path="/settings" element={
+            <ProtectedRoute session={session}>
+              <Settings session={session} />
+            </ProtectedRoute>
+          } />
+          
+          {/* Creator Routes */}
           <Route path="/music" element={
             <ProtectedRoute session={session}>
               <MusicVideos session={session} />
             </ProtectedRoute>
           } />
+          <Route path="/beats" element={
+            <ProtectedRoute session={session}>
+              <BeatMarketplace session={session} />
+            </ProtectedRoute>
+          } />
+          <Route path="/audio" element={
+            <ProtectedRoute session={session}>
+              <AudioUploader session={session} />
+            </ProtectedRoute>
+          } />
+          <Route path="/royalty/:trackId?" element={
+            <ProtectedRoute session={session}>
+              <RoyaltySplit session={session} />
+            </ProtectedRoute>
+          } />
+          
+          {/* Collaboration Routes */}
+          <Route path="/collab" element={
+            <ProtectedRoute session={session}>
+              <CollaborationFinder session={session} />
+            </ProtectedRoute>
+          } />
+          <Route path="/subscribe/:creatorId?" element={
+            <ProtectedRoute session={session}>
+              <FanSubscriptions session={session} />
+            </ProtectedRoute>
+          } />
+          
+          {/* Event Routes */}
+          <Route path="/concerts" element={
+            <ProtectedRoute session={session}>
+              <VirtualConcert session={session} />
+            </ProtectedRoute>
+          } />
+          <Route path="/events" element={
+            <ProtectedRoute session={session}>
+              <EventsManager session={session} />
+            </ProtectedRoute>
+          } />
+          
+          {/* Community Routes */}
           <Route path="/gigs" element={
             <ProtectedRoute session={session}>
               <GigBoard session={session} />
@@ -75,11 +138,39 @@ function App() {
               <Collectives session={session} />
             </ProtectedRoute>
           } />
+          <Route path="/groups" element={
+            <ProtectedRoute session={session}>
+              <GroupsManager session={session} />
+            </ProtectedRoute>
+          } />
+          
+          {/* Live & Media Routes */}
           <Route path="/live" element={
             <ProtectedRoute session={session}>
               <LiveStreaming session={session} />
             </ProtectedRoute>
           } />
+          <Route path="/studios" element={
+            <ProtectedRoute session={session}>
+              <StudioBooking session={session} />
+            </ProtectedRoute>
+          } />
+          
+          {/* Commerce Routes */}
+          <Route path="/marketplace" element={
+            <ProtectedRoute session={session}>
+              <Marketplace session={session} />
+            </ProtectedRoute>
+          } />
+          
+          {/* Communication Routes */}
+          <Route path="/messages" element={
+            <ProtectedRoute session={session}>
+              <Messaging session={session} />
+            </ProtectedRoute>
+          } />
+          
+          {/* Analytics & Admin */}
           <Route path="/analytics" element={
             <ProtectedRoute session={session}>
               <AnalyticsPage session={session} />
@@ -88,36 +179,6 @@ function App() {
           <Route path="/admin" element={
             <ProtectedRoute session={session}>
               <AdminPanel session={session} />
-            </ProtectedRoute>
-          } />
-          <Route path="/messages" element={
-            <ProtectedRoute session={session}>
-              <Messaging session={session} />
-            </ProtectedRoute>
-          } />
-          <Route path="/events" element={
-            <ProtectedRoute session={session}>
-              <EventsManager session={session} />
-            </ProtectedRoute>
-          } />
-          <Route path="/groups" element={
-            <ProtectedRoute session={session}>
-              <GroupsManager session={session} />
-            </ProtectedRoute>
-          } />
-          <Route path="/marketplace" element={
-            <ProtectedRoute session={session}>
-              <Marketplace session={session} />
-            </ProtectedRoute>
-          } />
-          <Route path="/profile/:id?" element={
-            <ProtectedRoute session={session}>
-              <Profile session={session} />
-            </ProtectedRoute>
-          } />
-          <Route path="/settings" element={
-            <ProtectedRoute session={session}>
-              <Settings session={session} />
             </ProtectedRoute>
           } />
         </Routes>

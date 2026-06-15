@@ -1,117 +1,143 @@
 import React, { useState, useEffect } from 'react'
-import { supabase } from '../lib/supabase'
 import { useNavigate } from 'react-router-dom'
+import { supabase } from '../lib/supabase'
 
 export default function RightSidebar({ session }) {
-  const [trendingTopics, setTrendingTopics] = useState([])
-  const [suggestedUsers, setSuggestedUsers] = useState([])
   const navigate = useNavigate()
+  const [suggestions, setSuggestions] = useState([])
+  const [friendRequests, setFriendRequests] = useState([])
+  const [trending, setTrending] = useState([
+    { topic: 'Sarah Chen', change: '+245%' },
+    { topic: 'Marcus Webb', change: '+189%' },
+    { topic: 'Summer Festival', change: '+156%' }
+  ])
 
   useEffect(() => {
-    loadTrending()
     loadSuggestions()
+    loadFriendRequests()
   }, [])
 
-  async function loadTrending() {
-    // Mock trending topics - in production, get from database
-    setTrendingTopics([
-      { topic: '#NewMusicFriday', posts: '12.5K', trending: true },
-      { topic: '#StageCreators', posts: '8.2K', trending: true },
-      { topic: '#LiveSession', posts: '5.1K', trending: true },
-      { topic: '#ProducerLife', posts: '3.8K', trending: false },
-      { topic: '#BeatMaking', posts: '2.9K', trending: false },
-    ])
-  }
-
   async function loadSuggestions() {
-    // Get users to follow (excluding current user)
     const { data } = await supabase
       .from('profiles')
       .select('id, username, display_name, avatar_url, is_verified')
       .neq('id', session?.user?.id)
       .limit(5)
-    
-    if (data) setSuggestedUsers(data)
+    if (data) setSuggestions(data)
+  }
+
+  async function loadFriendRequests() {
+    const { data } = await supabase
+      .from('friend_requests')
+      .select('*, sender:sender_id(id, username, display_name, avatar_url)')
+      .eq('receiver_id', session?.user?.id)
+      .eq('status', 'pending')
+      .limit(3)
+    if (data) setFriendRequests(data)
+  }
+
+  async function handleFollow(userId) {
+    await supabase
+      .from('follows')
+      .insert({ follower_id: session.user.id, following_id: userId })
+    loadSuggestions()
+  }
+
+  async function acceptRequest(requestId) {
+    await supabase
+      .from('friend_requests')
+      .update({ status: 'accepted' })
+      .eq('id', requestId)
+    loadFriendRequests()
   }
 
   return (
-    <div style={{ padding: '8px 0' }}>
-      {/* Trending Section */}
-      <div className="glass-card" style={{ padding: '20px', marginBottom: '20px' }}>
-        <h3 style={{ fontSize: '1.1rem', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-          🔥 Trending Now
-        </h3>
-        {trendingTopics.map((topic, index) => (
-          <div
-            key={index}
-            style={{
-              padding: '12px 0',
-              borderBottom: index < trendingTopics.length - 1 ? '1px solid rgba(255,255,255,0.05)' : 'none',
-              cursor: 'pointer'
-            }}
-            onClick={() => alert(`Search for ${topic.topic}`)}
-          >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div>
-                <div style={{ fontWeight: 600 }}>{topic.topic}</div>
-                <div style={{ fontSize: '0.7rem', color: '#888' }}>{topic.posts} posts</div>
-              </div>
-              {topic.trending && <span style={{ fontSize: '0.7rem', color: '#f59e0b' }}>📈 Trending</span>}
-            </div>
+    <div className="right-sidebar">
+      <div className="suggestions-card">
+        {/* Suggested for You */}
+        <div style={{ padding: '0 0 16px 0', borderBottom: '1px solid #eee' }}>
+          <div className="suggestions-header">
+            <span>Suggested for You</span>
+            <span className="see-all" onClick={() => navigate('/friends')}>See all</span>
           </div>
-        ))}
-      </div>
-      
-      {/* Suggested Users */}
-      <div className="glass-card" style={{ padding: '20px', marginBottom: '20px' }}>
-        <h3 style={{ fontSize: '1.1rem', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-          👥 Suggested For You
-        </h3>
-        {suggestedUsers.map((user) => (
-          <div
-            key={user.id}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '12px',
-              padding: '12px 0',
-              borderBottom: '1px solid rgba(255,255,255,0.05)',
-              cursor: 'pointer'
-            }}
-            onClick={() => navigate(`/profile/${user.id}`)}
-          >
-            <img
-              src={user.avatar_url || `https://ui-avatars.com/api/?name=${(user.username || 'U')[0]}&background=7c3aed&color=fff`}
-              style={{ width: '44px', height: '44px', borderRadius: '50%' }}
-              alt="avatar"
-            />
-            <div style={{ flex: 1 }}>
-              <div style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px' }}>
-                {user.display_name || user.username}
-                {user.is_verified && <span style={{ color: '#3b82f6', fontSize: '12px' }}>✓</span>}
+          {suggestions.map(user => (
+            <div key={user.id} className="suggestion-item" onClick={() => navigate(`/profile/${user.id}`)}>
+              <div className="suggestion-avatar">
+                <img src={user.avatar_url || `https://ui-avatars.com/api/?name=${(user.username?.[0] || 'U')}&background=000&color=fff`} style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }} alt="" />
               </div>
-              <div style={{ fontSize: '0.7rem', color: '#888' }}>@{user.username}</div>
+              <div className="suggestion-info">
+                <div className="suggestion-name">{user.display_name || user.username}</div>
+                <div className="suggestion-meta">{Math.floor(Math.random() * 20)} mutual friends</div>
+              </div>
+              <button className="follow-btn" onClick={(e) => { e.stopPropagation(); handleFollow(user.id) }}>Follow</button>
             </div>
-            <button 
-              className="btn btn-primary btn-small" 
-              style={{ padding: '6px 12px', fontSize: '0.7rem' }}
-              onClick={(e) => { e.stopPropagation(); alert('Follow feature coming') }}
-            >
-              Follow
-            </button>
+          ))}
+        </div>
+
+        {/* Friend Requests */}
+        {friendRequests.length > 0 && (
+          <div style={{ padding: '16px 0', borderBottom: '1px solid #eee' }}>
+            <div className="suggestions-header">
+              <span>Friend Requests</span>
+              <span className="see-all">{friendRequests.length} new</span>
+            </div>
+            {friendRequests.map(req => (
+              <div key={req.id} className="request-item" onClick={() => navigate(`/profile/${req.sender?.id}`)}>
+                <div className="request-avatar">
+                  <img src={req.sender?.avatar_url || `https://ui-avatars.com/api/?name=${(req.sender?.username?.[0] || 'U')}&background=000&color=fff`} style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }} alt="" />
+                </div>
+                <div className="request-info">
+                  <div className="request-name">{req.sender?.display_name || req.sender?.username}</div>
+                  <div className="request-mutual">{Math.floor(Math.random() * 10)} mutual friends</div>
+                </div>
+                <div className="request-buttons">
+                  <button className="request-btn accept" onClick={(e) => { e.stopPropagation(); acceptRequest(req.id) }}>✓</button>
+                  <button className="request-btn decline" onClick={(e) => e.stopPropagation()}>✗</button>
+                </div>
+              </div>
+            ))}
           </div>
-        ))}
-      </div>
-      
-      {/* Tips Section */}
-      <div className="glass-card" style={{ padding: '20px' }}>
-        <h3 style={{ fontSize: '1.1rem', marginBottom: '12px' }}>💡 Pro Tips</h3>
-        <p style={{ fontSize: '0.85rem', color: '#888', marginBottom: '12px' }}>
-          Get verified to upload music videos and reach more fans!
-        </p>
-        <button className="btn btn-primary btn-small" style={{ width: '100%' }} onClick={() => navigate('/settings')}>
-          Apply for Verification
-        </button>
+        )}
+
+        {/* Trending Today */}
+        <div style={{ padding: '16px 0', borderBottom: '1px solid #eee' }}>
+          <div className="suggestions-header">
+            <span>Trending Today</span>
+            <span className="see-all">See all</span>
+          </div>
+          {trending.map((item, i) => (
+            <div key={i} className="suggestion-item" onClick={() => navigate(`/search?q=${item.topic}`)}>
+              <div style={{ width: '28px', height: '28px', background: '#000', color: 'white', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px' }}>{i+1}</div>
+              <div className="suggestion-info">
+                <div className="suggestion-name">{item.topic}</div>
+              </div>
+              <span style={{ color: '#00aa00', fontSize: '11px' }}>{item.change}</span>
+            </div>
+          ))}
+        </div>
+
+        {/* Birthdays */}
+        <div style={{ padding: '16px 0 0 0' }}>
+          <div className="suggestions-header">
+            <span>Birthdays 🎂</span>
+          </div>
+          <div className="suggestion-item" onClick={() => navigate('/profile/sarah')}>
+            <div className="suggestion-avatar">🎂</div>
+            <div className="suggestion-info">
+              <div className="suggestion-name">Sarah Chen's birthday</div>
+              <div className="suggestion-meta">Today</div>
+            </div>
+            <button className="follow-btn">Wish</button>
+          </div>
+          <div className="suggestion-item" onClick={() => navigate('/profile/marcus')}>
+            <div className="suggestion-avatar">🎂</div>
+            <div className="suggestion-info">
+              <div className="suggestion-name">Marcus Webb's birthday</div>
+              <div className="suggestion-meta">Tomorrow</div>
+            </div>
+            <button className="follow-btn">Remind</button>
+          </div>
+        </div>
       </div>
     </div>
   )

@@ -1,66 +1,76 @@
 import React from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 
 export default function LeftSidebar({ session }) {
   const navigate = useNavigate()
-  
+  const location = useLocation()
+
   const menuItems = [
-    { icon: '🏠', label: 'Home', path: '/', color: '#7c3aed' },
-    { icon: '🎵', label: 'Music Videos', path: '/music', color: '#ec4899' },
-    { icon: '🎪', label: 'Gig Board', path: '/gigs', color: '#f59e0b' },
-    { icon: '👥', label: 'Collectives', path: '/collectives', color: '#10b981' },
-    { icon: '🔴', label: 'Live', path: '/live', color: '#ef4444' },
-    { icon: '📊', label: 'Analytics', path: '/analytics', color: '#3b82f6' },
-    { icon: '🔍', label: 'Search', path: '/search', color: '#8b5cf6' },
-    { icon: '⭐', label: 'Profile', path: '/profile', color: '#f97316' },
-    { icon: '⚙️', label: 'Settings', path: '/settings', color: '#6b7280' },
+    { icon: '🏠', label: 'Home', path: '/', color: '#000' },
+    { icon: '🎵', label: 'Music Videos', path: '/music', color: '#333' },
+    { icon: '🎪', label: 'Gig Board', path: '/gigs', color: '#555' },
+    { icon: '👥', label: 'Collectives', path: '/collectives', color: '#777' },
+    { icon: '🔴', label: 'Live', path: '/live', color: '#ff4444' },
+    { icon: '📊', label: 'Analytics', path: '/analytics', color: '#000' },
+    { icon: '🔍', label: 'Search', path: '/search', color: '#666' },
+    { icon: '⭐', label: 'Profile', path: '/profile', color: '#000' },
+    { icon: '⚙️', label: 'Settings', path: '/settings', color: '#888' },
+  ]
+
+  const quickProfiles = [
+    { name: 'Sarah Chen', username: 'sarah', avatar: 'S', type: 'artist', badge: 'ARTIST' },
+    { name: 'Marcus Webb', username: 'marcus', avatar: 'M', type: 'comedian', badge: 'COMEDIAN' },
+    { name: 'Elena Rodriguez', username: 'elena', avatar: 'E', type: 'manager', badge: 'MANAGER' },
   ]
 
   return (
-    <div style={{ padding: '8px 0' }}>
-      {/* Profile Card */}
-      <div className="glass-card" style={{ padding: '20px', marginBottom: '20px', textAlign: 'center' }}>
-        <img 
-          src={session?.user?.user_metadata?.avatar_url || `https://ui-avatars.com/api/?name=${session?.user?.email?.[0] || 'U'}&background=7c3aed&color=fff&size=80`}
-          style={{ width: '64px', height: '64px', borderRadius: '50%', marginBottom: '12px', border: '3px solid #7c3aed' }}
-          alt="avatar"
-        />
-        <h4 style={{ fontWeight: 600 }}>{session?.user?.user_metadata?.display_name || session?.user?.email?.split('@')[0]}</h4>
-        <p style={{ fontSize: '0.75rem', color: '#888', marginTop: '4px' }}>@{session?.user?.email?.split('@')[0]}</p>
+    <div className="left-sidebar">
+      {/* Live Now Button */}
+      <div className="live-now-btn" onClick={() => navigate('/live')}>
+        <div className="live-dot"></div>
+        <span>Live Now</span>
+        <span className="live-count">5</span>
       </div>
-      
+
       {/* Navigation Menu */}
       {menuItems.map((item, index) => (
-        <div
+        <div 
           key={index}
+          className={`sidebar-item ${location.pathname === item.path ? 'active' : ''}`}
           onClick={() => navigate(item.path)}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '14px',
-            padding: '12px 16px',
-            borderRadius: '14px',
-            marginBottom: '4px',
-            cursor: 'pointer',
-            transition: 'all 0.2s ease',
-            background: window.location.pathname === item.path ? 'rgba(124, 58, 237, 0.15)' : 'transparent',
-            borderLeft: window.location.pathname === item.path ? `3px solid ${item.color}` : '3px solid transparent'
-          }}
-          onMouseEnter={(e) => {
-            if (window.location.pathname !== item.path) {
-              e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)'
-            }
-          }}
-          onMouseLeave={(e) => {
-            if (window.location.pathname !== item.path) {
-              e.currentTarget.style.background = 'transparent'
-            }
-          }}
         >
-          <span style={{ fontSize: '1.5rem' }}>{item.icon}</span>
-          <span style={{ fontWeight: 500 }}>{item.label}</span>
+          <div className="sidebar-icon">{item.icon}</div>
+          <span>{item.label}</span>
         </div>
       ))}
+
+      <div className="divider"></div>
+      <div className="section-title">Your shortcuts</div>
+      
+      {quickProfiles.map((profile, index) => (
+        <div 
+          key={index}
+          className="sidebar-item" 
+          onClick={() => navigate(`/profile/${profile.username}`)}
+        >
+          <div className="sidebar-icon">{profile.avatar}</div>
+          <span>{profile.name}</span>
+          <span className={`profile-type-badge type-${profile.type}`}>{profile.badge}</span>
+        </div>
+      ))}
+
+      {/* Sponsors Section */}
+      <div className="sponsors-section">
+        <div className="sponsors-title">Sponsored</div>
+        <div className="sponsors-row">
+          <div className="sponsor-icon"><i className="fab fa-nike"></i></div>
+          <div className="sponsor-icon"><i className="fab fa-adidas"></i></div>
+          <div className="sponsor-icon"><i className="fab fa-spotify"></i></div>
+          <div className="sponsor-icon"><i className="fab fa-apple"></i></div>
+          <div className="sponsor-icon"><i className="fab fa-microsoft"></i></div>
+          <div className="sponsor-icon"><i className="fab fa-google"></i></div>
+        </div>
+      </div>
     </div>
   )
 }
