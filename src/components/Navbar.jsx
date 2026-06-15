@@ -35,6 +35,10 @@ export default function Navbar({ session }) {
         <>
           <div className="nav-links">
             <Link to="/" className="nav-link">🏠 Home</Link>
+            <Link to="/events" className="nav-link">📅 Events</Link>
+            <Link to="/groups" className="nav-link">👥 Groups</Link>
+            <Link to="/marketplace" className="nav-link">🛒 Market</Link>
+            <Link to="/messages" className="nav-link">💬 Messages</Link>
             <Link to="/music" className="nav-link">🎵 Music</Link>
             <Link to="/gigs" className="nav-link">🎪 Gigs</Link>
             <Link to="/collectives" className="nav-link">👥 Groups</Link>

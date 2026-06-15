@@ -1,19 +1,20 @@
 import React, { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 import PostCard from '../components/PostCard'
+import StoryCircle from '../components/StoryCircle'
+import Layout from '../components/Layout'
 
 export default function Home({ session }) {
   const [posts, setPosts] = useState([])
-  const [followingPosts, setFollowingPosts] = useState([])
   const [loading, setLoading] = useState(true)
   const [newPostContent, setNewPostContent] = useState('')
   const [selectedImage, setSelectedImage] = useState(null)
   const [imagePreview, setImagePreview] = useState(null)
-  const [activeTab, setActiveTab] = useState('for-you')
-  const [submitting, setSubmitting] = useState(false)
+  const [stories, setStories] = useState([])
 
   useEffect(() => {
     loadPosts()
+    loadStories()
   }, [])
 
   async function loadPosts() {
@@ -37,69 +38,39 @@ export default function Home({ session }) {
     setLoading(false)
   }
 
-  async function loadFollowingPosts() {
-    // Get users the current user follows
-    const { data: following } = await supabase
-      .from('follows')
-      .select('following_id')
-      .eq('follower_id', session.user.id)
+  async function loadStories() {
+    // Load friends with recent stories
+    const { data } = await supabase
+      .from('profiles')
+      .select('id, username, display_name, avatar_url, is_verified')
+      .neq('id', session.user.id)
+      .limit(10)
     
-    if (following && following.length > 0) {
-      const followingIds = following.map(f => f.following_id)
-      const { data } = await supabase
-        .from('posts')
-        .select(`
-          *,
-          profiles:user_id (
-            id,
-            username,
-            display_name,
-            avatar_url,
-            is_verified,
-            role
-          )
-        `)
-        .in('user_id', followingIds)
-        .order('created_at', { ascending: false })
-      
-      if (data) setFollowingPosts(data)
-    } else {
-      setFollowingPosts([])
-    }
+    if (data) setStories(data)
   }
 
-  async function uploadImage(file) {
-    const fileExt = file.name.split('.').pop()
-    const fileName = `${session.user.id}_${Date.now()}.${fileExt}`
-    const filePath = `${session.user.id}/${fileName}`
-    
-    const { error } = await supabase.storage
-      .from('post-images')
-      .upload(filePath, file)
-    
-    if (error) {
-      alert('Error uploading image: ' + error.message)
-      return null
-    }
-    
-    const { data: { publicUrl } } = supabase.storage
-      .from('post-images')
-      .getPublicUrl(filePath)
-    
-    return publicUrl
-  }
-
-  async function handleCreatePost() {
+  async function createPost() {
     if (!newPostContent.trim() && !selectedImage) {
       alert('Please write something or add an image')
       return
     }
     
-    setSubmitting(true)
-    
     let imageUrl = null
     if (selectedImage) {
-      imageUrl = await uploadImage(selectedImage)
+      const fileExt = selectedImage.name.split('.').pop()
+      const fileName = `${session.user.id}_${Date.now()}.${fileExt}`
+      const filePath = `${session.user.id}/${fileName}`
+      
+      const { error } = await supabase.storage
+        .from('post-images')
+        .upload(filePath, selectedImage)
+      
+      if (!error) {
+        const { data: { publicUrl } } = supabase.storage
+          .from('post-images')
+          .getPublicUrl(filePath)
+        imageUrl = publicUrl
+      }
     }
     
     const { error } = await supabase
@@ -110,105 +81,68 @@ export default function Home({ session }) {
         image_urls: imageUrl ? [imageUrl] : []
       })
     
-    if (error) {
-      alert('Error creating post: ' + error.message)
-    } else {
+    if (!error) {
       setNewPostContent('')
       setSelectedImage(null)
       setImagePreview(null)
       await loadPosts()
     }
-    
-    setSubmitting(false)
   }
-
-  function handleImageSelect(e) {
-    const file = e.target.files[0]
-    if (file) {
-      setSelectedImage(file)
-      const reader = new FileReader()
-      reader.onload = (e) => setImagePreview(e.target.result)
-      reader.readAsDataURL(file)
-    }
-  }
-
-  function removeImage() {
-    setSelectedImage(null)
-    setImagePreview(null)
-    document.getElementById('postImageInput').value = ''
-  }
-
-  // Determine which posts to show based on active tab
-  const getFeedPosts = () => {
-    if (activeTab === 'for-you') return posts
-    if (activeTab === 'following') return followingPosts
-    return posts.filter(p => p.user_id === session.user.id)
-  }
-
-  const feedPosts = getFeedPosts()
 
   return (
-    <div className="container">
-      {/* Tabs */}
-      <div className="tabs">
-        <div 
-          className={`tab ${activeTab === 'for-you' ? 'active' : ''}`} 
-          onClick={() => setActiveTab('for-you')}
-        >
-          For You
-        </div>
-        <div 
-          className={`tab ${activeTab === 'following' ? 'active' : ''}`} 
-          onClick={() => {
-            setActiveTab('following')
-            loadFollowingPosts()
-          }}
-        >
-          Following
-        </div>
-        <div 
-          className={`tab ${activeTab === 'my-posts' ? 'active' : ''}`} 
-          onClick={() => setActiveTab('my-posts')}
-        >
-          My Posts
+    <Layout session={session}>
+      {/* Stories Row */}
+      <div className="glass-card" style={{ padding: '20px', marginBottom: '24px', overflowX: 'auto' }}>
+        <div style={{ display: 'flex', gap: '20px' }}>
+          {/* Your Story */}
+          <StoryCircle 
+            user={{ username: 'Your Story', avatar_url: session?.user?.user_metadata?.avatar_url }}
+            onClick={() => alert('Create story - coming soon')}
+          />
+          {stories.map(user => (
+            <StoryCircle 
+              key={user.id} 
+              user={user} 
+              onClick={() => alert(`View ${user.display_name}'s story`)}
+            />
+          ))}
         </div>
       </div>
       
-      {/* Create Post */}
-      <div className="card" style={{ marginBottom: '30px' }}>
-        <textarea
-          rows="3"
-          placeholder="What's happening on your stage?"
-          value={newPostContent}
-          onChange={(e) => setNewPostContent(e.target.value)}
-          style={{
-            width: '100%',
-            padding: '16px',
-            background: '#1f1f1f',
-            border: '1px solid #333',
-            borderRadius: '16px',
-            color: 'white',
-            resize: 'vertical',
-            fontFamily: 'inherit'
-          }}
-        />
+      {/* Create Post Card */}
+      <div className="glass-card" style={{ padding: '20px', marginBottom: '24px' }}>
+        <div style={{ display: 'flex', gap: '12px', marginBottom: '16px' }}>
+          <img 
+            src={session?.user?.user_metadata?.avatar_url || `https://ui-avatars.com/api/?name=${session?.user?.email?.[0] || 'U'}&background=7c3aed&color=fff`}
+            style={{ width: '48px', height: '48px', borderRadius: '50%' }}
+            alt="avatar"
+          />
+          <textarea
+            className="input-modern"
+            rows="2"
+            placeholder={`What's on your mind, ${session?.user?.user_metadata?.display_name || 'Creator'}?`}
+            value={newPostContent}
+            onChange={(e) => setNewPostContent(e.target.value)}
+            style={{ flex: 1, resize: 'none' }}
+          />
+        </div>
         
         {imagePreview && (
-          <div style={{ marginTop: '12px', position: 'relative', display: 'inline-block' }}>
+          <div style={{ position: 'relative', marginBottom: '12px' }}>
             <img src={imagePreview} style={{ maxWidth: '200px', borderRadius: '12px' }} alt="preview" />
             <button
-              onClick={removeImage}
+              onClick={() => {
+                setSelectedImage(null)
+                setImagePreview(null)
+              }}
               style={{
                 position: 'absolute',
                 top: '-8px',
-                right: '-8px',
-                background: '#ff5f6d',
+                left: '192px',
+                background: '#ef4444',
                 borderRadius: '50%',
                 width: '24px',
                 height: '24px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
                 border: 'none',
                 color: 'white',
                 cursor: 'pointer'
@@ -219,57 +153,56 @@ export default function Home({ session }) {
           </div>
         )}
         
-        <div style={{ marginTop: '12px', display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
-          <button 
-            className="btn btn-primary" 
-            onClick={handleCreatePost}
-            disabled={submitting}
-          >
-            {submitting ? 'Posting...' : 'Post to Stage'}
-          </button>
+        <div style={{ display: 'flex', gap: '12px', borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '16px' }}>
           <button 
             className="btn btn-secondary" 
+            style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
             onClick={() => document.getElementById('postImageInput').click()}
           >
-            📷 Add Image (Lossless)
+            📷 Photo/Video
+          </button>
+          <button 
+            className="btn btn-primary" 
+            style={{ flex: 1 }}
+            onClick={createPost}
+          >
+            Post
           </button>
           <input
             type="file"
             id="postImageInput"
             accept="image/*"
             style={{ display: 'none' }}
-            onChange={handleImageSelect}
+            onChange={(e) => {
+              const file = e.target.files[0]
+              if (file) {
+                setSelectedImage(file)
+                const reader = new FileReader()
+                reader.onload = (e) => setImagePreview(e.target.result)
+                reader.readAsDataURL(file)
+              }
+            }}
           />
         </div>
-        <p style={{ fontSize: '0.7rem', color: '#555', marginTop: '8px' }}>
-          ✨ Images keep original quality forever. Click "View Original" to see full resolution.
-        </p>
       </div>
       
       {/* Posts Feed */}
       {loading ? (
         <div className="spinner"></div>
-      ) : feedPosts.length === 0 ? (
-        <div className="card" style={{ textAlign: 'center' }}>
-          <p style={{ color: '#888' }}>
-            {activeTab === 'following' 
-              ? 'No posts from people you follow yet. Follow some users!' 
-              : 'No posts yet. Be the first to post!'}
-          </p>
+      ) : posts.length === 0 ? (
+        <div className="glass-card" style={{ textAlign: 'center', padding: '40px' }}>
+          <p style={{ color: '#888' }}>No posts yet. Be the first to post!</p>
         </div>
       ) : (
-        feedPosts.map(post => (
+        posts.map(post => (
           <PostCard 
             key={post.id} 
             post={post} 
             session={session} 
-            onPostUpdate={async () => {
-              await loadPosts()
-              if (activeTab === 'following') await loadFollowingPosts()
-            }} 
+            onPostUpdate={loadPosts} 
           />
         ))
       )}
-    </div>
+    </Layout>
   )
 }

@@ -11,6 +11,7 @@ export default function PostCard({ post, session, onPostUpdate }) {
   const [showRepostModal, setShowRepostModal] = useState(false)
   const [repostComment, setRepostComment] = useState('')
   const [hasLiked, setHasLiked] = useState(false)
+  const [isSaved, setIsSaved] = useState(false)
 
   const postUser = post.profiles || {}
   const isOwner = session?.user?.id === post.user_id
@@ -29,9 +30,22 @@ export default function PostCard({ post, session, onPostUpdate }) {
     checkLike()
   }, [post.id, session.user.id])
 
+  // Check if post is saved
+  useEffect(() => {
+    async function checkSaved() {
+      const { data } = await supabase
+        .from('saved_posts')
+        .select('id')
+        .eq('user_id', session.user.id)
+        .eq('post_id', post.id)
+        .single()
+      setIsSaved(!!data)
+    }
+    checkSaved()
+  }, [post.id, session.user.id])
+
   async function handleLike() {
     if (hasLiked) {
-      // Unlike
       await supabase
         .from('post_likes')
         .delete()
@@ -39,13 +53,28 @@ export default function PostCard({ post, session, onPostUpdate }) {
         .eq('post_id', post.id)
       setHasLiked(false)
     } else {
-      // Like
       await supabase
         .from('post_likes')
         .insert({ user_id: session.user.id, post_id: post.id })
       setHasLiked(true)
     }
     onPostUpdate()
+  }
+
+  async function handleSave() {
+    if (isSaved) {
+      await supabase
+        .from('saved_posts')
+        .delete()
+        .eq('user_id', session.user.id)
+        .eq('post_id', post.id)
+      setIsSaved(false)
+    } else {
+      await supabase
+        .from('saved_posts')
+        .insert({ user_id: session.user.id, post_id: post.id })
+      setIsSaved(true)
+    }
   }
 
   async function handleSpark() {
@@ -59,7 +88,6 @@ export default function PostCard({ post, session, onPostUpdate }) {
 
   async function handleDelete() {
     if (confirm('Are you sure you want to delete this post?')) {
-      // Delete image from storage if exists
       if (post.image_urls && post.image_urls[0]) {
         const imagePath = post.image_urls[0].split('/').pop()
         await supabase.storage.from('post-images').remove([`${post.user_id}/${imagePath}`])
@@ -163,6 +191,19 @@ export default function PostCard({ post, session, onPostUpdate }) {
     modal.onclick = (e) => { if (e.target === modal) modal.remove() }
   }
 
+  function sharePost() {
+    if (navigator.share) {
+      navigator.share({
+        title: 'Check out this post on Stage!',
+        text: post.content,
+        url: window.location.href
+      })
+    } else {
+      navigator.clipboard.writeText(window.location.href)
+      alert('Link copied to clipboard!')
+    }
+  }
+
   function formatTimeAgo(date) {
     if (!date) return 'just now'
     const seconds = Math.floor((new Date() - new Date(date)) / 1000)
@@ -177,25 +218,25 @@ export default function PostCard({ post, session, onPostUpdate }) {
   }
 
   return (
-    <div className="card" style={{ marginBottom: '20px' }}>
+    <div className="post-card" style={{ marginBottom: '20px' }}>
       {/* Post Header */}
       <div className="post-header">
         <img 
-          src={postUser.avatar_url || `https://ui-avatars.com/api/?name=${(postUser.username || 'U')[0]}&background=ff5f6d&color=fff`} 
+          src={postUser.avatar_url || `https://ui-avatars.com/api/?name=${(postUser.username || 'U')[0]}&background=7c3aed&color=fff`} 
           className="post-avatar" 
           alt="avatar"
         />
         <div>
           <div className="post-name">
             {postUser.display_name || postUser.username}
-            {postUser.is_verified && <span style={{ color: '#1da1f2', marginLeft: '4px' }}>✓</span>}
+            {postUser.is_verified && <span style={{ color: '#3b82f6', marginLeft: '4px' }}>✓</span>}
           </div>
           <div className="post-time">{formatTimeAgo(post.created_at)}</div>
         </div>
         {isOwner && (
           <div style={{ marginLeft: 'auto', display: 'flex', gap: '8px' }}>
             <button className="btn btn-outline btn-small" onClick={() => setIsEditing(true)}>Edit</button>
-            <button className="btn btn-outline btn-small" onClick={handleDelete} style={{ borderColor: '#ff5f6d', color: '#ff5f6d' }}>Delete</button>
+            <button className="btn btn-outline btn-small" onClick={handleDelete} style={{ borderColor: '#ef4444', color: '#ef4444' }}>Delete</button>
           </div>
         )}
       </div>
@@ -204,7 +245,7 @@ export default function PostCard({ post, session, onPostUpdate }) {
       {isEditing ? (
         <div>
           <textarea
-            className="input"
+            className="input-modern"
             value={editContent}
             onChange={(e) => setEditContent(e.target.value)}
             rows="3"
@@ -243,6 +284,12 @@ export default function PostCard({ post, session, onPostUpdate }) {
             <button className="action-btn" onClick={() => setShowRepostModal(true)}>
               🔁 Repost
             </button>
+            <button className="action-btn" onClick={handleSave}>
+              {isSaved ? '💾 Saved' : '💾 Save'}
+            </button>
+            <button className="action-btn" onClick={sharePost}>
+              📤 Share
+            </button>
           </div>
         </>
       )}
@@ -252,7 +299,7 @@ export default function PostCard({ post, session, onPostUpdate }) {
         <div className="comments-section">
           <div className="comment-input" style={{ display: 'flex', gap: '12px', marginBottom: '16px' }}>
             <textarea
-              className="input"
+              className="input-modern"
               placeholder="Write a comment..."
               value={newComment}
               onChange={(e) => setNewComment(e.target.value)}
@@ -267,14 +314,14 @@ export default function PostCard({ post, session, onPostUpdate }) {
           {comments.map(comment => (
             <div key={comment.id} className="comment">
               <img 
-                src={comment.profiles?.avatar_url || `https://ui-avatars.com/api/?name=${(comment.profiles?.username || 'U')[0]}&background=ff5f6d&color=fff`} 
+                src={comment.profiles?.avatar_url || `https://ui-avatars.com/api/?name=${(comment.profiles?.username || 'U')[0]}&background=7c3aed&color=fff`} 
                 className="comment-avatar" 
                 alt="avatar"
               />
               <div className="comment-content">
                 <div className="comment-name">
                   {comment.profiles?.display_name || comment.profiles?.username}
-                  {comment.profiles?.is_verified && <span style={{ color: '#1da1f2', marginLeft: '4px' }}>✓</span>}
+                  {comment.profiles?.is_verified && <span style={{ color: '#3b82f6', marginLeft: '4px' }}>✓</span>}
                 </div>
                 <div className="comment-text">{comment.content}</div>
                 <div className="comment-time">{formatTimeAgo(comment.created_at)}</div>
@@ -294,7 +341,7 @@ export default function PostCard({ post, session, onPostUpdate }) {
           <div className="modal-content" style={{ maxWidth: '500px', background: '#141414', padding: '24px', borderRadius: '20px' }} onClick={(e) => e.stopPropagation()}>
             <h3 style={{ marginBottom: '16px', color: 'white' }}>Repost this</h3>
             <textarea
-              className="input"
+              className="input-modern"
               placeholder="Add a comment (optional)..."
               value={repostComment}
               onChange={(e) => setRepostComment(e.target.value)}

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
-import { Analytics } from '@vercel/analytics/react'  // Add this import
+import { Analytics } from '@vercel/analytics/react'
 import { supabase } from './lib/supabase'
 import Navbar from './components/Navbar'
 import ProtectedRoute from './components/ProtectedRoute'
@@ -16,6 +16,10 @@ import Collectives from './pages/Collectives'
 import LiveStreaming from './pages/LiveStreaming'
 import AnalyticsPage from './pages/Analytics'
 import AdminPanel from './pages/AdminPanel'
+import Messaging from './components/Messaging'
+import EventsManager from './components/EventsManager'
+import GroupsManager from './components/GroupsManager'
+import Marketplace from './components/Marketplace'
 
 function App() {
   const [session, setSession] = useState(null)
@@ -40,7 +44,7 @@ function App() {
 
   return (
     <>
-      <Analytics /> {/* Add Analytics component here */}
+      <Analytics />
       <BrowserRouter>
         <Navbar session={session} />
         <Routes>
@@ -76,14 +80,34 @@ function App() {
               <LiveStreaming session={session} />
             </ProtectedRoute>
           } />
-<Route path="/analytics" element={
-  <ProtectedRoute session={session}>
-    <AnalyticsPage session={session} />
-  </ProtectedRoute>
-} />
+          <Route path="/analytics" element={
+            <ProtectedRoute session={session}>
+              <AnalyticsPage session={session} />
+            </ProtectedRoute>
+          } />
           <Route path="/admin" element={
             <ProtectedRoute session={session}>
               <AdminPanel session={session} />
+            </ProtectedRoute>
+          } />
+          <Route path="/messages" element={
+            <ProtectedRoute session={session}>
+              <Messaging session={session} />
+            </ProtectedRoute>
+          } />
+          <Route path="/events" element={
+            <ProtectedRoute session={session}>
+              <EventsManager session={session} />
+            </ProtectedRoute>
+          } />
+          <Route path="/groups" element={
+            <ProtectedRoute session={session}>
+              <GroupsManager session={session} />
+            </ProtectedRoute>
+          } />
+          <Route path="/marketplace" element={
+            <ProtectedRoute session={session}>
+              <Marketplace session={session} />
             </ProtectedRoute>
           } />
           <Route path="/profile/:id?" element={
