@@ -1,11 +1,13 @@
 // src/components/Layout.jsx
 import React, { useState, useEffect } from 'react'
+import { useLocation } from 'react-router-dom'
 import LeftSidebar from './LeftSidebar'
 import RightSidebar from './RightSidebar'
 
 export default function Layout({ children, session }) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [windowWidth, setWindowWidth] = useState(window.innerWidth)
+  const location = useLocation()
 
   useEffect(() => {
     const handleResize = () => {
@@ -19,6 +21,14 @@ export default function Layout({ children, session }) {
   }, [])
 
   const isMobile = windowWidth < 768
+  
+  // Check if current page is auth page (login or register)
+  const isAuthPage = location.pathname === '/login' || location.pathname === '/register'
+  
+  // If on auth page, render only children with no layout
+  if (isAuthPage) {
+    return <>{children}</>
+  }
 
   return (
     <>

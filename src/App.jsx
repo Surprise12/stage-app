@@ -1,8 +1,9 @@
+// src/App.jsx
 import React, { useEffect, useState } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { Analytics } from '@vercel/analytics/react'
 import { supabase } from './lib/supabase'
-import Navbar from './components/Navbar'
+import Layout from './components/Layout'
 import ProtectedRoute from './components/ProtectedRoute'
 import Login from './pages/Login'
 import Register from './pages/Register'
@@ -46,139 +47,219 @@ function App() {
   }, [])
 
   if (loading) {
-    return <div className="spinner"></div>
+    return (
+      <div style={{ 
+        display: 'flex', 
+        alignItems: 'center', 
+        justifyContent: 'center', 
+        minHeight: '100vh',
+        background: '#0a0a1a'
+      }}>
+        <div className="spinner"></div>
+        <style>{`
+          .spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid rgba(124, 58, 237, 0.2);
+            border-top: 4px solid #7c3aed;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+          }
+          @keyframes spin {
+            to { transform: rotate(360deg); }
+          }
+        `}</style>
+      </div>
+    )
   }
 
   return (
     <>
       <Analytics />
       <BrowserRouter>
-        <Navbar session={session} />
         <Routes>
-          {/* Auth Routes */}
-          <Route path="/login" element={!session ? <Login /> : <Navigate to="/" />} />
-          <Route path="/register" element={!session ? <Register /> : <Navigate to="/" />} />
+          {/* Auth Routes - No Layout, No Navbar */}
+          <Route path="/login" element={
+            !session ? <Login /> : <Navigate to="/" />
+          } />
+          <Route path="/register" element={
+            !session ? <Register /> : <Navigate to="/" />
+          } />
           
-          {/* Main Routes */}
+          {/* Protected Routes with Layout */}
           <Route path="/" element={
             <ProtectedRoute session={session}>
-              <Home session={session} />
+              <Layout session={session}>
+                <Home session={session} />
+              </Layout>
             </ProtectedRoute>
           } />
+          
           <Route path="/search" element={
             <ProtectedRoute session={session}>
-              <Search />
+              <Layout session={session}>
+                <Search />
+              </Layout>
             </ProtectedRoute>
           } />
+          
           <Route path="/profile/:id?" element={
             <ProtectedRoute session={session}>
-              <Profile session={session} />
+              <Layout session={session}>
+                <Profile session={session} />
+              </Layout>
             </ProtectedRoute>
           } />
+          
           <Route path="/settings" element={
             <ProtectedRoute session={session}>
-              <Settings session={session} />
+              <Layout session={session}>
+                <Settings session={session} />
+              </Layout>
             </ProtectedRoute>
           } />
           
           {/* Creator Routes */}
           <Route path="/music" element={
             <ProtectedRoute session={session}>
-              <MusicVideos session={session} />
+              <Layout session={session}>
+                <MusicVideos session={session} />
+              </Layout>
             </ProtectedRoute>
           } />
+          
           <Route path="/beats" element={
             <ProtectedRoute session={session}>
-              <BeatMarketplace session={session} />
+              <Layout session={session}>
+                <BeatMarketplace session={session} />
+              </Layout>
             </ProtectedRoute>
           } />
+          
           <Route path="/audio" element={
             <ProtectedRoute session={session}>
-              <AudioUploader session={session} />
+              <Layout session={session}>
+                <AudioUploader session={session} />
+              </Layout>
             </ProtectedRoute>
           } />
+          
           <Route path="/royalty/:trackId?" element={
             <ProtectedRoute session={session}>
-              <RoyaltySplit session={session} />
+              <Layout session={session}>
+                <RoyaltySplit session={session} />
+              </Layout>
             </ProtectedRoute>
           } />
           
           {/* Collaboration Routes */}
           <Route path="/collab" element={
             <ProtectedRoute session={session}>
-              <CollaborationFinder session={session} />
+              <Layout session={session}>
+                <CollaborationFinder session={session} />
+              </Layout>
             </ProtectedRoute>
           } />
+          
           <Route path="/subscribe/:creatorId?" element={
             <ProtectedRoute session={session}>
-              <FanSubscriptions session={session} />
+              <Layout session={session}>
+                <FanSubscriptions session={session} />
+              </Layout>
             </ProtectedRoute>
           } />
           
           {/* Event Routes */}
           <Route path="/concerts" element={
             <ProtectedRoute session={session}>
-              <VirtualConcert session={session} />
+              <Layout session={session}>
+                <VirtualConcert session={session} />
+              </Layout>
             </ProtectedRoute>
           } />
+          
           <Route path="/events" element={
             <ProtectedRoute session={session}>
-              <EventsManager session={session} />
+              <Layout session={session}>
+                <EventsManager session={session} />
+              </Layout>
             </ProtectedRoute>
           } />
           
           {/* Community Routes */}
           <Route path="/gigs" element={
             <ProtectedRoute session={session}>
-              <GigBoard session={session} />
+              <Layout session={session}>
+                <GigBoard session={session} />
+              </Layout>
             </ProtectedRoute>
           } />
+          
           <Route path="/collectives" element={
             <ProtectedRoute session={session}>
-              <Collectives session={session} />
+              <Layout session={session}>
+                <Collectives session={session} />
+              </Layout>
             </ProtectedRoute>
           } />
+          
           <Route path="/groups" element={
             <ProtectedRoute session={session}>
-              <GroupsManager session={session} />
+              <Layout session={session}>
+                <GroupsManager session={session} />
+              </Layout>
             </ProtectedRoute>
           } />
           
           {/* Live & Media Routes */}
           <Route path="/live" element={
             <ProtectedRoute session={session}>
-              <LiveStreaming session={session} />
+              <Layout session={session}>
+                <LiveStreaming session={session} />
+              </Layout>
             </ProtectedRoute>
           } />
+          
           <Route path="/studios" element={
             <ProtectedRoute session={session}>
-              <StudioBooking session={session} />
+              <Layout session={session}>
+                <StudioBooking session={session} />
+              </Layout>
             </ProtectedRoute>
           } />
           
           {/* Commerce Routes */}
           <Route path="/marketplace" element={
             <ProtectedRoute session={session}>
-              <Marketplace session={session} />
+              <Layout session={session}>
+                <Marketplace session={session} />
+              </Layout>
             </ProtectedRoute>
           } />
           
           {/* Communication Routes */}
           <Route path="/messages" element={
             <ProtectedRoute session={session}>
-              <Messaging session={session} />
+              <Layout session={session}>
+                <Messaging session={session} />
+              </Layout>
             </ProtectedRoute>
           } />
           
           {/* Analytics & Admin */}
           <Route path="/analytics" element={
             <ProtectedRoute session={session}>
-              <AnalyticsPage session={session} />
+              <Layout session={session}>
+                <AnalyticsPage session={session} />
+              </Layout>
             </ProtectedRoute>
           } />
+          
           <Route path="/admin" element={
             <ProtectedRoute session={session}>
-              <AdminPanel session={session} />
+              <Layout session={session}>
+                <AdminPanel session={session} />
+              </Layout>
             </ProtectedRoute>
           } />
         </Routes>
