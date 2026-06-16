@@ -34,12 +34,15 @@ function App() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    console.log('App: Checking session...')
     supabase.auth.getSession().then(({ data: { session } }) => {
+      console.log('App: Session loaded:', session ? 'Yes' : 'No')
       setSession(session)
       setLoading(false)
     })
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      console.log('App: Auth state changed:', _event, session ? 'Logged in' : 'Logged out')
       setSession(session)
     })
 
@@ -73,6 +76,8 @@ function App() {
     )
   }
 
+  console.log('App: Rendering, session:', session?.user?.email || 'No session')
+
   return (
     <>
       <Analytics />
@@ -80,188 +85,234 @@ function App() {
         <Routes>
           {/* Auth Routes - No Layout, No Navbar */}
           <Route path="/login" element={
-            !session ? <Login /> : <Navigate to="/" />
+            !session ? <Login /> : <Navigate to="/" replace />
           } />
           <Route path="/register" element={
-            !session ? <Register /> : <Navigate to="/" />
+            !session ? <Register /> : <Navigate to="/" replace />
           } />
           
-          {/* Protected Routes with Layout */}
+          {/* Home Route - Simplified for debugging */}
           <Route path="/" element={
-            <ProtectedRoute session={session}>
+            session ? (
               <Layout session={session}>
                 <Home session={session} />
               </Layout>
-            </ProtectedRoute>
+            ) : (
+              <Navigate to="/login" replace />
+            )
           } />
           
+          {/* Other Protected Routes */}
           <Route path="/search" element={
-            <ProtectedRoute session={session}>
+            session ? (
               <Layout session={session}>
                 <Search />
               </Layout>
-            </ProtectedRoute>
+            ) : (
+              <Navigate to="/login" replace />
+            )
           } />
           
           <Route path="/profile/:id?" element={
-            <ProtectedRoute session={session}>
+            session ? (
               <Layout session={session}>
                 <Profile session={session} />
               </Layout>
-            </ProtectedRoute>
+            ) : (
+              <Navigate to="/login" replace />
+            )
           } />
           
           <Route path="/settings" element={
-            <ProtectedRoute session={session}>
+            session ? (
               <Layout session={session}>
                 <Settings session={session} />
               </Layout>
-            </ProtectedRoute>
+            ) : (
+              <Navigate to="/login" replace />
+            )
           } />
           
           {/* Creator Routes */}
           <Route path="/music" element={
-            <ProtectedRoute session={session}>
+            session ? (
               <Layout session={session}>
                 <MusicVideos session={session} />
               </Layout>
-            </ProtectedRoute>
+            ) : (
+              <Navigate to="/login" replace />
+            )
           } />
           
           <Route path="/beats" element={
-            <ProtectedRoute session={session}>
+            session ? (
               <Layout session={session}>
                 <BeatMarketplace session={session} />
               </Layout>
-            </ProtectedRoute>
+            ) : (
+              <Navigate to="/login" replace />
+            )
           } />
           
           <Route path="/audio" element={
-            <ProtectedRoute session={session}>
+            session ? (
               <Layout session={session}>
                 <AudioUploader session={session} />
               </Layout>
-            </ProtectedRoute>
+            ) : (
+              <Navigate to="/login" replace />
+            )
           } />
           
           <Route path="/royalty/:trackId?" element={
-            <ProtectedRoute session={session}>
+            session ? (
               <Layout session={session}>
                 <RoyaltySplit session={session} />
               </Layout>
-            </ProtectedRoute>
+            ) : (
+              <Navigate to="/login" replace />
+            )
           } />
           
           {/* Collaboration Routes */}
           <Route path="/collab" element={
-            <ProtectedRoute session={session}>
+            session ? (
               <Layout session={session}>
                 <CollaborationFinder session={session} />
               </Layout>
-            </ProtectedRoute>
+            ) : (
+              <Navigate to="/login" replace />
+            )
           } />
           
           <Route path="/subscribe/:creatorId?" element={
-            <ProtectedRoute session={session}>
+            session ? (
               <Layout session={session}>
                 <FanSubscriptions session={session} />
               </Layout>
-            </ProtectedRoute>
+            ) : (
+              <Navigate to="/login" replace />
+            )
           } />
           
           {/* Event Routes */}
           <Route path="/concerts" element={
-            <ProtectedRoute session={session}>
+            session ? (
               <Layout session={session}>
                 <VirtualConcert session={session} />
               </Layout>
-            </ProtectedRoute>
+            ) : (
+              <Navigate to="/login" replace />
+            )
           } />
           
           <Route path="/events" element={
-            <ProtectedRoute session={session}>
+            session ? (
               <Layout session={session}>
                 <EventsManager session={session} />
               </Layout>
-            </ProtectedRoute>
+            ) : (
+              <Navigate to="/login" replace />
+            )
           } />
           
           {/* Community Routes */}
           <Route path="/gigs" element={
-            <ProtectedRoute session={session}>
+            session ? (
               <Layout session={session}>
                 <GigBoard session={session} />
               </Layout>
-            </ProtectedRoute>
+            ) : (
+              <Navigate to="/login" replace />
+            )
           } />
           
           <Route path="/collectives" element={
-            <ProtectedRoute session={session}>
+            session ? (
               <Layout session={session}>
                 <Collectives session={session} />
               </Layout>
-            </ProtectedRoute>
+            ) : (
+              <Navigate to="/login" replace />
+            )
           } />
           
           <Route path="/groups" element={
-            <ProtectedRoute session={session}>
+            session ? (
               <Layout session={session}>
                 <GroupsManager session={session} />
               </Layout>
-            </ProtectedRoute>
+            ) : (
+              <Navigate to="/login" replace />
+            )
           } />
           
           {/* Live & Media Routes */}
           <Route path="/live" element={
-            <ProtectedRoute session={session}>
+            session ? (
               <Layout session={session}>
                 <LiveStreaming session={session} />
               </Layout>
-            </ProtectedRoute>
+            ) : (
+              <Navigate to="/login" replace />
+            )
           } />
           
           <Route path="/studios" element={
-            <ProtectedRoute session={session}>
+            session ? (
               <Layout session={session}>
                 <StudioBooking session={session} />
               </Layout>
-            </ProtectedRoute>
+            ) : (
+              <Navigate to="/login" replace />
+            )
           } />
           
           {/* Commerce Routes */}
           <Route path="/marketplace" element={
-            <ProtectedRoute session={session}>
+            session ? (
               <Layout session={session}>
                 <Marketplace session={session} />
               </Layout>
-            </ProtectedRoute>
+            ) : (
+              <Navigate to="/login" replace />
+            )
           } />
           
           {/* Communication Routes */}
           <Route path="/messages" element={
-            <ProtectedRoute session={session}>
+            session ? (
               <Layout session={session}>
                 <Messaging session={session} />
               </Layout>
-            </ProtectedRoute>
+            ) : (
+              <Navigate to="/login" replace />
+            )
           } />
           
           {/* Analytics & Admin */}
           <Route path="/analytics" element={
-            <ProtectedRoute session={session}>
+            session ? (
               <Layout session={session}>
                 <AnalyticsPage session={session} />
               </Layout>
-            </ProtectedRoute>
+            ) : (
+              <Navigate to="/login" replace />
+            )
           } />
           
           <Route path="/admin" element={
-            <ProtectedRoute session={session}>
+            session ? (
               <Layout session={session}>
                 <AdminPanel session={session} />
               </Layout>
-            </ProtectedRoute>
+            ) : (
+              <Navigate to="/login" replace />
+            )
           } />
+          
+          {/* Catch all - redirect to home */}
+          <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </BrowserRouter>
     </>
