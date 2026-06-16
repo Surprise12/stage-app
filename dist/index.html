@@ -6,7 +6,64 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <title>SocialVibe — Creator Community Platform</title>
-    <script type="module" crossorigin src="/assets/index-B5oNzuUm.js"></script>
+    
+    <!-- STRONG extension error suppression -->
+    <script>
+      // This must run BEFORE any other scripts
+      (function() {
+        // Store original handlers
+        const originalOnError = window.onerror;
+        const originalOnUnhandledRejection = window.onunhandledrejection;
+        
+        // Error patterns to suppress
+        const suppressPatterns = [
+          'startResizing',
+          'chrome-extension://',
+          'extension',
+          'Cannot read properties of undefined',
+          'ResizeObserver',
+          'ResizeObserver loop'
+        ];
+        
+        // Override error handler
+        window.onerror = function(message, source, lineno, colno, error) {
+          if (typeof message === 'string') {
+            for (const pattern of suppressPatterns) {
+              if (message.includes(pattern)) {
+                console.warn('🔇 Suppressed:', message.substring(0, 100));
+                return true; // Prevent default
+              }
+            }
+          }
+          if (originalOnError) {
+            return originalOnError(message, source, lineno, colno, error);
+          }
+          return false;
+        };
+        
+        // Override unhandled rejection handler
+        window.addEventListener('unhandledrejection', function(e) {
+          const message = e.reason?.message || e.reason || '';
+          if (typeof message === 'string') {
+            for (const pattern of suppressPatterns) {
+              if (message.includes(pattern)) {
+                e.preventDefault();
+                e.stopPropagation();
+                console.warn('🔇 Suppressed promise rejection');
+                return;
+              }
+            }
+          }
+          // Let other rejections through
+          if (originalOnUnhandledRejection) {
+            originalOnUnhandledRejection(e);
+          }
+        });
+        
+        console.log('✅ Extension error suppression active');
+      })();
+    </script>
+    <script type="module" crossorigin src="/assets/index-D97lHiSt.js"></script>
     <link rel="stylesheet" crossorigin href="/assets/index-C4bfgYdF.css">
   </head>
   <body>

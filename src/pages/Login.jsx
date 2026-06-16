@@ -15,98 +15,136 @@ export default function Login() {
   const canvasRef = useRef(null)
   const navigate = useNavigate()
 
-  // Particle animation
+  // Particle animation with error handling
   useEffect(() => {
-    const canvas = canvasRef.current
-    const ctx = canvas.getContext('2d')
-    let animationFrameId
-    let particles = []
+    try {
+      const canvas = canvasRef.current
+      if (!canvas) return
+      
+      const ctx = canvas.getContext('2d')
+      if (!ctx) return
+      
+      let animationFrameId
+      let particles = []
 
-    const resizeCanvas = () => {
-      canvas.width = window.innerWidth
-      canvas.height = window.innerHeight
-    }
-
-    class Particle {
-      constructor() {
-        this.x = Math.random() * canvas.width
-        this.y = Math.random() * canvas.height
-        this.size = Math.random() * 2 + 0.5
-        this.speedX = (Math.random() - 0.5) * 0.3
-        this.speedY = (Math.random() - 0.5) * 0.3
-        this.opacity = Math.random() * 0.3 + 0.1
+      const resizeCanvas = () => {
+        try {
+          canvas.width = window.innerWidth
+          canvas.height = window.innerHeight
+        } catch (e) {
+          console.warn('Canvas resize error:', e)
+        }
       }
 
-      update() {
-        this.x += this.speedX
-        this.y += this.speedY
+      class Particle {
+        constructor() {
+          this.x = Math.random() * canvas.width
+          this.y = Math.random() * canvas.height
+          this.size = Math.random() * 2 + 0.5
+          this.speedX = (Math.random() - 0.5) * 0.3
+          this.speedY = (Math.random() - 0.5) * 0.3
+          this.opacity = Math.random() * 0.3 + 0.1
+        }
 
-        if (this.x > canvas.width) this.x = 0
-        if (this.x < 0) this.x = canvas.width
-        if (this.y > canvas.height) this.y = 0
-        if (this.y < 0) this.y = canvas.height
-      }
+        update() {
+          this.x += this.speedX
+          this.y += this.speedY
 
-      draw() {
-        ctx.beginPath()
-        ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2)
-        ctx.fillStyle = `rgba(255, 255, 255, ${this.opacity})`
-        ctx.fill()
-      }
-    }
+          if (this.x > canvas.width) this.x = 0
+          if (this.x < 0) this.x = canvas.width
+          if (this.y > canvas.height) this.y = 0
+          if (this.y < 0) this.y = canvas.height
+        }
 
-    const initParticles = () => {
-      particles = []
-      const count = Math.min(50, Math.floor((canvas.width * canvas.height) / 20000))
-      for (let i = 0; i < count; i++) {
-        particles.push(new Particle())
-      }
-    }
-
-    const connectParticles = () => {
-      for (let i = 0; i < particles.length; i++) {
-        for (let j = i + 1; j < particles.length; j++) {
-          const dx = particles[i].x - particles[j].x
-          const dy = particles[i].y - particles[j].y
-          const distance = Math.sqrt(dx * dx + dy * dy)
-          
-          if (distance < 120) {
-            const opacity = (1 - distance / 120) * 0.15
+        draw() {
+          try {
             ctx.beginPath()
-            ctx.strokeStyle = `rgba(255, 255, 255, ${opacity})`
-            ctx.lineWidth = 0.3
-            ctx.moveTo(particles[i].x, particles[i].y)
-            ctx.lineTo(particles[j].x, particles[j].y)
-            ctx.stroke()
+            ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2)
+            ctx.fillStyle = `rgba(255, 255, 255, ${this.opacity})`
+            ctx.fill()
+          } catch (e) {
+            // Silent fail for drawing errors
           }
         }
       }
-    }
 
-    const animate = () => {
-      ctx.clearRect(0, 0, canvas.width, canvas.height)
-      
-      particles.forEach(particle => {
-        particle.update()
-        particle.draw()
-      })
-      
-      connectParticles()
-      animationFrameId = requestAnimationFrame(animate)
-    }
+      const initParticles = () => {
+        try {
+          particles = []
+          const count = Math.min(50, Math.floor((canvas.width * canvas.height) / 20000))
+          for (let i = 0; i < count; i++) {
+            particles.push(new Particle())
+          }
+        } catch (e) {
+          console.warn('Particle init error:', e)
+        }
+      }
 
-    resizeCanvas()
-    initParticles()
-    animate()
+      const connectParticles = () => {
+        try {
+          for (let i = 0; i < particles.length; i++) {
+            for (let j = i + 1; j < particles.length; j++) {
+              const dx = particles[i].x - particles[j].x
+              const dy = particles[i].y - particles[j].y
+              const distance = Math.sqrt(dx * dx + dy * dy)
+              
+              if (distance < 120) {
+                const opacity = (1 - distance / 120) * 0.15
+                ctx.beginPath()
+                ctx.strokeStyle = `rgba(255, 255, 255, ${opacity})`
+                ctx.lineWidth = 0.3
+                ctx.moveTo(particles[i].x, particles[i].y)
+                ctx.lineTo(particles[j].x, particles[j].y)
+                ctx.stroke()
+              }
+            }
+          }
+        } catch (e) {
+          // Silent fail for connection errors
+        }
+      }
 
-    window.addEventListener('resize', () => {
+      const animate = () => {
+        try {
+          ctx.clearRect(0, 0, canvas.width, canvas.height)
+          
+          particles.forEach(particle => {
+            particle.update()
+            particle.draw()
+          })
+          
+          connectParticles()
+          animationFrameId = requestAnimationFrame(animate)
+        } catch (e) {
+          // Silent fail for animation errors
+        }
+      }
+
       resizeCanvas()
       initParticles()
-    })
+      animate()
 
-    return () => {
-      cancelAnimationFrame(animationFrameId)
-      window.removeEventListener('resize', resizeCanvas)
+      window.addEventListener('resize', () => {
+        try {
+          resizeCanvas()
+          initParticles()
+        } catch (e) {
+          console.warn('Resize handler error:', e)
+        }
+      })
+
+      return () => {
+        try {
+          if (animationFrameId) {
+            cancelAnimationFrame(animationFrameId)
+          }
+          window.removeEventListener('resize', resizeCanvas)
+        } catch (e) {
+          // Silent fail for cleanup
+        }
+      }
+    } catch (e) {
+      console.warn('Canvas setup error:', e)
     }
   }, [])
 
@@ -124,50 +162,78 @@ export default function Login() {
     setLoading(true)
     setError('')
 
-    const { error } = await supabase.auth.signInWithPassword({ email, password })
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({ 
+        email, 
+        password 
+      })
 
-    if (error) {
-      setError(error.message)
+      if (error) {
+        setError(error.message)
+        setLoading(false)
+      } else {
+        console.log('Login successful:', data)
+        setLoading(false)
+        // Use window.location for more reliable redirect
+        window.location.href = '/'
+      }
+    } catch (err) {
+      console.error('Login error:', err)
+      setError('An unexpected error occurred')
       setLoading(false)
-    } else {
-      setTimeout(() => {
-        navigate('/')
-      }, 300)
     }
   }
 
   const handleGoogleLogin = async () => {
-    setLoading(true)
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: { redirectTo: window.location.origin }
-    })
-    if (error) {
-      setError(error.message)
+    try {
+      setLoading(true)
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: { redirectTo: window.location.origin }
+      })
+      if (error) {
+        setError(error.message)
+        setLoading(false)
+      }
+    } catch (err) {
+      console.error('Google login error:', err)
+      setError('An unexpected error occurred')
       setLoading(false)
     }
   }
 
   const handleAppleLogin = async () => {
-    setLoading(true)
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'apple',
-      options: { redirectTo: window.location.origin }
-    })
-    if (error) {
-      setError(error.message)
+    try {
+      setLoading(true)
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'apple',
+        options: { redirectTo: window.location.origin }
+      })
+      if (error) {
+        setError(error.message)
+        setLoading(false)
+      }
+    } catch (err) {
+      console.error('Apple login error:', err)
+      setError('An unexpected error occurred')
       setLoading(false)
     }
   }
 
   const handleMicrosoftLogin = async () => {
-    setLoading(true)
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'azure',
-      options: { redirectTo: window.location.origin }
-    })
-    if (error) {
-      setError(error.message)
+    try {
+      setLoading(true)
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'azure',
+        options: { redirectTo: window.location.origin }
+      })
+      if (error) {
+        setError(error.message)
+        setLoading(false)
+      }
+    } catch (err) {
+      console.error('Microsoft login error:', err)
+      setError('An unexpected error occurred')
       setLoading(false)
     }
   }
@@ -179,15 +245,21 @@ export default function Login() {
     }
     
     setLoading(true)
-    const { error } = await supabase.auth.resetPasswordForEmail(resetEmail, {
-      redirectTo: `${window.location.origin}/reset-password`,
-    })
-    
-    if (error) {
-      setError(error.message)
-      setLoading(false)
-    } else {
-      setResetSent(true)
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(resetEmail, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      })
+      
+      if (error) {
+        setError(error.message)
+        setLoading(false)
+      } else {
+        setResetSent(true)
+        setLoading(false)
+      }
+    } catch (err) {
+      console.error('Reset password error:', err)
+      setError('An unexpected error occurred')
       setLoading(false)
     }
   }

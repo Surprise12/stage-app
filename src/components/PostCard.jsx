@@ -17,6 +17,7 @@ export default function PostCard({ post, session, onPostUpdate }) {
   const [showAnalytics, setShowAnalytics] = useState(false)
   const [repostCount, setRepostCount] = useState(post.repost_count || 0)
   const [hasReposted, setHasReposted] = useState(false)
+  const [loadingComments, setLoadingComments] = useState(false)
   const commentsEndRef = useRef(null)
 
   const postUser = post.profiles || {}
@@ -34,61 +35,77 @@ export default function PostCard({ post, session, onPostUpdate }) {
   }, [comments])
 
   async function checkLikeStatus() {
-    const { data } = await supabase
-      .from('post_likes')
-      .select('id')
-      .eq('user_id', session.user.id)
-      .eq('post_id', post.id)
-      .single()
-    setHasLiked(!!data)
+    try {
+      const { data } = await supabase
+        .from('post_likes')
+        .select('id')
+        .eq('user_id', session.user.id)
+        .eq('post_id', post.id)
+        .single()
+      setHasLiked(!!data)
+    } catch (error) {
+      // No like found - that's fine
+    }
   }
 
   async function checkRepostStatus() {
-    const { data } = await supabase
-      .from('reposts')
-      .select('id')
-      .eq('user_id', session.user.id)
-      .eq('post_id', post.id)
-      .single()
-    setHasReposted(!!data)
+    try {
+      const { data } = await supabase
+        .from('reposts')
+        .select('id')
+        .eq('user_id', session.user.id)
+        .eq('post_id', post.id)
+        .single()
+      setHasReposted(!!data)
+    } catch (error) {
+      // No repost found - that's fine
+    }
   }
 
   async function handleLike() {
-    if (hasLiked) {
-      await supabase
-        .from('post_likes')
-        .delete()
-        .eq('user_id', session.user.id)
-        .eq('post_id', post.id)
-      setLikeCount(prev => prev - 1)
-      setHasLiked(false)
-    } else {
-      await supabase
-        .from('post_likes')
-        .insert({ user_id: session.user.id, post_id: post.id })
-      setLikeCount(prev => prev + 1)
-      setHasLiked(true)
+    try {
+      if (hasLiked) {
+        await supabase
+          .from('post_likes')
+          .delete()
+          .eq('user_id', session.user.id)
+          .eq('post_id', post.id)
+        setLikeCount(prev => prev - 1)
+        setHasLiked(false)
+      } else {
+        await supabase
+          .from('post_likes')
+          .insert({ user_id: session.user.id, post_id: post.id })
+        setLikeCount(prev => prev + 1)
+        setHasLiked(true)
+      }
+      if (onPostUpdate) onPostUpdate()
+    } catch (error) {
+      console.error('Like error:', error)
     }
-    onPostUpdate()
   }
 
   async function handleRepost() {
-    if (hasReposted) {
-      await supabase
-        .from('reposts')
-        .delete()
-        .eq('user_id', session.user.id)
-        .eq('post_id', post.id)
-      setRepostCount(prev => prev - 1)
-      setHasReposted(false)
-    } else {
-      await supabase
-        .from('reposts')
-        .insert({ user_id: session.user.id, post_id: post.id })
-      setRepostCount(prev => prev + 1)
-      setHasReposted(true)
+    try {
+      if (hasReposted) {
+        await supabase
+          .from('reposts')
+          .delete()
+          .eq('user_id', session.user.id)
+          .eq('post_id', post.id)
+        setRepostCount(prev => prev - 1)
+        setHasReposted(false)
+      } else {
+        await supabase
+          .from('reposts')
+          .insert({ user_id: session.user.id, post_id: post.id })
+        setRepostCount(prev => prev + 1)
+        setHasReposted(true)
+      }
+      if (onPostUpdate) onPostUpdate()
+    } catch (error) {
+      console.error('Repost error:', error)
     }
-    onPostUpdate()
   }
 
   async function loadComments() {
@@ -97,64 +114,85 @@ export default function PostCard({ post, session, onPostUpdate }) {
       return
     }
     
-    const { data } = await supabase
-      .from('comments')
-      .select(`*, profiles:user_id(id, username, display_name, avatar_url, is_verified)`)
-      .eq('post_id', post.id)
-      .is('parent_id', null)
-      .order('created_at', { ascending: true })
-    
-    if (data) setComments(data)
-    setShowComments(true)
+    setLoadingComments(true)
+    try {
+      const { data } = await supabase
+        .from('comments')
+        .select(`*, profiles:user_id(id, username, display_name, avatar_url, is_verified)`)
+        .eq('post_id', post.id)
+        .is('parent_id', null)
+        .order('created_at', { ascending: true })
+      
+      if (data) setComments(data)
+      setShowComments(true)
+    } catch (error) {
+      console.error('Load comments error:', error)
+    }
+    setLoadingComments(false)
   }
 
   async function submitComment() {
     if (!newComment.trim()) return
     
-    await supabase
-      .from('comments')
-      .insert({
-        user_id: session.user.id,
-        post_id: post.id,
-        content: newComment
-      })
-    
-    setNewComment('')
-    await loadComments()
-    onPostUpdate()
+    try {
+      await supabase
+        .from('comments')
+        .insert({
+          user_id: session.user.id,
+          post_id: post.id,
+          content: newComment
+        })
+      
+      setNewComment('')
+      await loadComments()
+      if (onPostUpdate) onPostUpdate()
+    } catch (error) {
+      console.error('Comment error:', error)
+    }
   }
 
   async function deletePost() {
     if (confirm('Are you sure you want to delete this post?')) {
-      await supabase.from('posts').delete().eq('id', post.id)
-      onPostUpdate()
+      try {
+        await supabase.from('posts').delete().eq('id', post.id)
+        if (onPostUpdate) onPostUpdate()
+      } catch (error) {
+        console.error('Delete error:', error)
+      }
     }
   }
 
   async function updatePost() {
     if (!editContent.trim()) return
     
-    await supabase
-      .from('posts')
-      .update({ content: editContent })
-      .eq('id', post.id)
-    
-    setIsEditing(false)
-    onPostUpdate()
+    try {
+      await supabase
+        .from('posts')
+        .update({ content: editContent })
+        .eq('id', post.id)
+      
+      setIsEditing(false)
+      if (onPostUpdate) onPostUpdate()
+    } catch (error) {
+      console.error('Update error:', error)
+    }
   }
 
   async function handleReaction(emoji) {
-    // Send reaction via post_likes with reaction type
-    await supabase
-      .from('post_reactions')
-      .upsert({
-        user_id: session.user.id,
-        post_id: post.id,
-        reaction: emoji
-      }, { onConflict: 'user_id, post_id' })
-    
-    setShowReactions(false)
-    onPostUpdate()
+    try {
+      await supabase
+        .from('post_reactions')
+        .upsert({
+          user_id: session.user.id,
+          post_id: post.id,
+          reaction: emoji
+        }, { onConflict: 'user_id, post_id' })
+      
+      setShowReactions(false)
+      if (onPostUpdate) onPostUpdate()
+    } catch (error) {
+      console.error('Reaction error:', error)
+    }
   }
 
   function handleShare(platform) {
@@ -200,11 +238,15 @@ export default function PostCard({ post, session, onPostUpdate }) {
       <div className="post-header">
         <div className="post-author" onClick={() => navigate(`/profile/${post.user_id}`)}>
           <div className="post-author-avatar">
-            <img src={postUser.avatar_url || `https://ui-avatars.com/api/?name=${(postUser.username?.[0] || 'U')}&background=000&color=fff`} style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }} alt="" />
+            <img 
+              src={postUser.avatar_url || `https://ui-avatars.com/api/?name=${(postUser.username?.[0] || 'U')}&background=7c3aed&color=fff`} 
+              style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }} 
+              alt={postUser.username || 'User'} 
+            />
           </div>
           <div className="post-author-info">
             <div className="post-author-name">
-              {postUser.display_name || postUser.username}
+              {postUser.display_name || postUser.username || 'Unknown User'}
               {postUser.is_verified && <span style={{ color: '#1da1f2', fontSize: '14px' }}>✓</span>}
             </div>
             <div className="post-time">{formatTimeAgo(post.created_at)}</div>
@@ -212,14 +254,14 @@ export default function PostCard({ post, session, onPostUpdate }) {
         </div>
         {isOwner && (
           <div style={{ display: 'flex', gap: '8px' }}>
-            <button className="cover-btn" style={{ padding: '4px 12px', fontSize: '11px' }} onClick={() => setIsEditing(true)}>
-              Edit
+            <button className="cover-btn" style={{ padding: '4px 12px', fontSize: '11px', cursor: 'pointer' }} onClick={() => setIsEditing(true)}>
+              ✏️
             </button>
-            <button className="cover-btn" style={{ padding: '4px 12px', fontSize: '11px' }} onClick={() => setShowAnalytics(!showAnalytics)}>
+            <button className="cover-btn" style={{ padding: '4px 12px', fontSize: '11px', cursor: 'pointer' }} onClick={() => setShowAnalytics(!showAnalytics)}>
               📊
             </button>
-            <button className="cover-btn" style={{ padding: '4px 12px', fontSize: '11px' }} onClick={deletePost}>
-              Delete
+            <button className="cover-btn" style={{ padding: '4px 12px', fontSize: '11px', cursor: 'pointer' }} onClick={deletePost}>
+              🗑️
             </button>
           </div>
         )}
@@ -229,29 +271,31 @@ export default function PostCard({ post, session, onPostUpdate }) {
       {isEditing ? (
         <div style={{ marginBottom: '16px' }}>
           <textarea 
-            className="input" 
+            className="form-textarea" 
             value={editContent} 
             onChange={(e) => setEditContent(e.target.value)} 
             rows="3"
           />
           <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
-            <button className="btn btn-primary btn-small" onClick={updatePost}>Save</button>
-            <button className="btn btn-secondary btn-small" onClick={() => setIsEditing(false)}>Cancel</button>
+            <button className="primary-btn" style={{ padding: '8px 16px', fontSize: '12px' }} onClick={updatePost}>Save</button>
+            <button className="secondary-btn" style={{ padding: '8px 16px', fontSize: '12px' }} onClick={() => setIsEditing(false)}>Cancel</button>
           </div>
         </div>
       ) : (
         <>
           <div className="post-content">{post.content}</div>
-          {post.image_urls?.[0] && (
+          {post.image_urls && post.image_urls.length > 0 && (
             <div style={{ marginBottom: '16px', position: 'relative' }}>
-              <img src={post.image_urls[0]} style={{ width: '100%', borderRadius: '12px' }} alt="post" />
-              <button 
-                className="view-original-btn" 
-                onClick={() => window.open(post.image_urls[0], '_blank')}
-                style={{ position: 'absolute', bottom: '12px', right: '12px', background: 'rgba(0,0,0,0.7)', color: 'white', border: 'none', padding: '4px 12px', borderRadius: '20px', fontSize: '11px', cursor: 'pointer' }}
-              >
-                View Original
-              </button>
+              <img 
+                src={post.image_urls[0]} 
+                style={{ width: '100%', borderRadius: '12px' }} 
+                alt="post" 
+              />
+              {post.image_urls.length > 1 && (
+                <div style={{ position: 'absolute', top: '12px', right: '12px', background: 'rgba(0,0,0,0.7)', color: 'white', padding: '4px 12px', borderRadius: '20px', fontSize: '11px' }}>
+                  +{post.image_urls.length - 1} more
+                </div>
+              )}
             </div>
           )}
         </>
@@ -271,8 +315,9 @@ export default function PostCard({ post, session, onPostUpdate }) {
           onClick={handleLike}
           onMouseEnter={() => setShowReactions(true)}
           onMouseLeave={() => setTimeout(() => setShowReactions(false), 300)}
+          style={{ position: 'relative' }}
         >
-          <i className="fas fa-thumbs-up"></i> Like
+          <i className={`fas ${hasLiked ? 'fa-thumbs-up' : 'fa-thumbs-up'}`}></i> Like
           {showReactions && (
             <div style={{
               position: 'absolute',
@@ -316,8 +361,12 @@ export default function PostCard({ post, session, onPostUpdate }) {
       {showComments && (
         <div className="comments-section">
           <div className="add-comment">
-            <div className="comment-avatar">
-              <img src={session?.user?.user_metadata?.avatar_url || `https://ui-avatars.com/api/?name=${session?.user?.email?.[0] || 'U'}&background=000&color=fff`} style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }} alt="" />
+            <div className="comment-avatar" style={{ width: '32px', height: '32px', fontSize: '12px' }}>
+              <img 
+                src={session?.user?.user_metadata?.avatar_url || `https://ui-avatars.com/api/?name=${(session?.user?.email?.[0] || 'U')}&background=7c3aed&color=fff`} 
+                style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }} 
+                alt="avatar" 
+              />
             </div>
             <input 
               type="text" 
@@ -329,23 +378,29 @@ export default function PostCard({ post, session, onPostUpdate }) {
             />
           </div>
           
-          {comments.map(comment => (
-            <div key={comment.id} className="comment" onClick={() => navigate(`/profile/${comment.user_id}`)}>
-              <div className="comment-avatar">
-                <img src={comment.profiles?.avatar_url || `https://ui-avatars.com/api/?name=${(comment.profiles?.username?.[0] || 'U')}&background=000&color=fff`} style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }} alt="" />
-              </div>
-              <div className="comment-bubble">
-                <div className="comment-author">
-                  {comment.profiles?.display_name || comment.profiles?.username}
-                  {comment.profiles?.is_verified && <span style={{ color: '#1da1f2', marginLeft: '4px' }}>✓</span>}
+          {loadingComments ? (
+            <div className="spinner" style={{ width: '30px', height: '30px', margin: '20px auto' }}></div>
+          ) : comments.length > 0 ? (
+            comments.map(comment => (
+              <div key={comment.id} className="comment" onClick={() => navigate(`/profile/${comment.user_id}`)}>
+                <div className="comment-avatar">
+                  <img 
+                    src={comment.profiles?.avatar_url || `https://ui-avatars.com/api/?name=${(comment.profiles?.username?.[0] || 'U')}&background=7c3aed&color=fff`} 
+                    style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }} 
+                    alt={comment.profiles?.username || 'User'} 
+                  />
                 </div>
-                <div className="comment-text">{comment.content}</div>
-                <div className="comment-time">{formatTimeAgo(comment.created_at)}</div>
+                <div className="comment-bubble">
+                  <div className="comment-author">
+                    {comment.profiles?.display_name || comment.profiles?.username || 'Unknown User'}
+                    {comment.profiles?.is_verified && <span style={{ color: '#1da1f2', marginLeft: '4px' }}>✓</span>}
+                  </div>
+                  <div className="comment-text">{comment.content}</div>
+                  <div className="comment-time">{formatTimeAgo(comment.created_at)}</div>
+                </div>
               </div>
-            </div>
-          ))}
-          
-          {comments.length === 0 && (
+            ))
+          ) : (
             <p style={{ textAlign: 'center', color: '#888', padding: '20px' }}>No comments yet. Be the first!</p>
           )}
           <div ref={commentsEndRef} />
@@ -354,24 +409,21 @@ export default function PostCard({ post, session, onPostUpdate }) {
       
       {/* Share Modal */}
       {showShareModal && (
-        <div className="modal" style={{ display: 'flex' }} onClick={() => setShowShareModal(false)}>
+        <div className="modal active" onClick={() => setShowShareModal(false)}>
           <div className="modal-content" style={{ maxWidth: '400px' }} onClick={(e) => e.stopPropagation()}>
             <div className="modal-title">Share to...</div>
-            <div className="dropdown-item" onClick={() => handleShare('facebook')}>
-              <i className="fab fa-facebook" style={{ color: '#1877f2', width: '24px' }}></i> Facebook
+            <div className="dropdown-item" onClick={() => handleShare('facebook')} style={{ padding: '12px 16px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <i className="fab fa-facebook" style={{ color: '#1877f2', width: '24px', fontSize: '20px' }}></i> Facebook
             </div>
-            <div className="dropdown-item" onClick={() => handleShare('twitter')}>
-              <i className="fab fa-twitter" style={{ color: '#000', width: '24px' }}></i> Twitter
+            <div className="dropdown-item" onClick={() => handleShare('twitter')} style={{ padding: '12px 16px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <i className="fab fa-twitter" style={{ color: '#000', width: '24px', fontSize: '20px' }}></i> Twitter
             </div>
-            <div className="dropdown-item" onClick={() => handleShare('whatsapp')}>
-              <i className="fab fa-whatsapp" style={{ color: '#25d366', width: '24px' }}></i> WhatsApp
+            <div className="dropdown-item" onClick={() => handleShare('whatsapp')} style={{ padding: '12px 16px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <i className="fab fa-whatsapp" style={{ color: '#25d366', width: '24px', fontSize: '20px' }}></i> WhatsApp
             </div>
-            <div className="dropdown-divider"></div>
-            <div className="dropdown-item" onClick={() => handleShare('copy')}>
+            <div className="dropdown-divider" style={{ height: '1px', background: '#eee', margin: '8px 0' }}></div>
+            <div className="dropdown-item" onClick={() => handleShare('copy')} style={{ padding: '12px 16px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '12px' }}>
               <i className="fas fa-link" style={{ width: '24px' }}></i> Copy Link
-            </div>
-            <div className="dropdown-item" onClick={() => handleShare('post')}>
-              <i className="fas fa-home" style={{ width: '24px' }}></i> Share to Feed
             </div>
             <button className="secondary-btn" style={{ marginTop: '16px', width: '100%' }} onClick={() => setShowShareModal(false)}>
               Cancel
@@ -382,7 +434,7 @@ export default function PostCard({ post, session, onPostUpdate }) {
       
       {/* Analytics Modal */}
       {showAnalytics && (
-        <div className="modal" style={{ display: 'flex' }} onClick={() => setShowAnalytics(false)}>
+        <div className="modal active" onClick={() => setShowAnalytics(false)}>
           <div className="modal-content" style={{ maxWidth: '500px' }} onClick={(e) => e.stopPropagation()}>
             <div className="modal-title">📊 Post Analytics</div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>

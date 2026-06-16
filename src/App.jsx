@@ -4,7 +4,6 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { Analytics } from '@vercel/analytics/react'
 import { supabase } from './lib/supabase'
 import Layout from './components/Layout'
-import ProtectedRoute from './components/ProtectedRoute'
 import Login from './pages/Login'
 import Register from './pages/Register'
 import Home from './pages/Home'
@@ -83,7 +82,7 @@ function App() {
       <Analytics />
       <BrowserRouter>
         <Routes>
-          {/* Auth Routes - No Layout, No Navbar */}
+          {/* Auth Routes - No Layout */}
           <Route path="/login" element={
             !session ? <Login /> : <Navigate to="/" replace />
           } />
@@ -91,7 +90,7 @@ function App() {
             !session ? <Register /> : <Navigate to="/" replace />
           } />
           
-          {/* Home Route - Simplified for debugging */}
+          {/* Home Route - Direct session check */}
           <Route path="/" element={
             session ? (
               <Layout session={session}>
@@ -102,17 +101,7 @@ function App() {
             )
           } />
           
-          {/* Other Protected Routes */}
-          <Route path="/search" element={
-            session ? (
-              <Layout session={session}>
-                <Search />
-              </Layout>
-            ) : (
-              <Navigate to="/login" replace />
-            )
-          } />
-          
+          {/* Profile Route */}
           <Route path="/profile/:id?" element={
             session ? (
               <Layout session={session}>
@@ -127,6 +116,16 @@ function App() {
             session ? (
               <Layout session={session}>
                 <Settings session={session} />
+              </Layout>
+            ) : (
+              <Navigate to="/login" replace />
+            )
+          } />
+          
+          <Route path="/search" element={
+            session ? (
+              <Layout session={session}>
+                <Search />
               </Layout>
             ) : (
               <Navigate to="/login" replace />
