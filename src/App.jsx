@@ -1,5 +1,5 @@
 // src/App.jsx
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useRef } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { Analytics } from '@vercel/analytics/react'
 import { supabase } from './lib/supabase'
@@ -31,22 +31,57 @@ import AudioUploader from './components/AudioUploader'
 function App() {
   const [session, setSession] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [initialized, setInitialized] = useState(false)
+  const mountedRef = useRef(true)
 
   useEffect(() => {
-    console.log('App: Checking session...')
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      console.log('App: Session loaded:', session ? 'Yes' : 'No')
+    // Prevent duplicate initialization
+    if (initialized) return
+    setInitialized(true)
+    
+    console.log('App: Initializing...')
+
+    // Get initial session
+    supabase.auth.getSession()
+      .then(({ data: { session } }) => {
+        if (!mountedRef.current) return
+        console.log('App: Session loaded:', session ? 'Yes' : 'No')
+        setSession(session)
+        setLoading(false)
+      })
+      .catch(err => {
+        console.error('Session error:', err)
+        if (mountedRef.current) {
+          setLoading(false)
+        }
+      })
+
+    // Subscribe to auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!mountedRef.current) return
+      console.log('App: Auth state changed:', _event, session ? 'Logged in' : 'Logged out')
       setSession(session)
       setLoading(false)
     })
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      console.log('App: Auth state changed:', _event, session ? 'Logged in' : 'Logged out')
-      setSession(session)
-    })
+    // Cleanup
+    return () => {
+      mountedRef.current = false
+      subscription.unsubscribe()
+    }
+  }, [initialized])
 
-    return () => subscription.unsubscribe()
-  }, [])
+  // Prevent infinite loading - add timeout fallback
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (loading) {
+        console.warn('App: Loading timeout - forcing render')
+        setLoading(false)
+      }
+    }, 3000)
+
+    return () => clearTimeout(timer)
+  }, [loading])
 
   if (loading) {
     return (

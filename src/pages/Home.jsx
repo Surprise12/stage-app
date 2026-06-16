@@ -1,5 +1,5 @@
 // src/pages/Home.jsx
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import PostCard from '../components/PostCard'
@@ -19,36 +19,37 @@ export default function Home({ session }) {
   const [postLocation, setPostLocation] = useState('')
   const [postTags, setPostTags] = useState('')
   const [postPrivacy, setPostPrivacy] = useState('public')
+  const [creatingPost, setCreatingPost] = useState(false)
+  const fileInputRef = useRef(null)
+  const modalFileInputRef = useRef(null)
 
-  // Mock data
-  const mockStories = [
+  // Mock data - memoized to prevent recreation
+  const mockStories = React.useMemo(() => [
     { id: 1, name: 'Sarah Chen', avatar: 'S', image: 'https://picsum.photos/400/700?random=1', time: '5 min ago' },
     { id: 2, name: 'Marcus Webb', avatar: 'M', image: 'https://picsum.photos/400/700?random=2', time: '15 min ago' },
     { id: 3, name: 'Elena Rodriguez', avatar: 'E', image: 'https://picsum.photos/400/700?random=3', time: '1 hour ago' },
     { id: 4, name: 'Alex Rivera', avatar: 'A', image: 'https://picsum.photos/400/700?random=4', time: '2 hours ago' },
-  ]
+  ], [])
 
-  const mockReels = [
+  const mockReels = React.useMemo(() => [
     { id: 1, title: 'Epic Dance Move', creator: 'Emma Watson', avatar: 'E', views: '2.3M', likes: '45K', image: 'https://picsum.photos/400/700?random=10' },
     { id: 2, title: 'Comedy Sketch', creator: 'Mike Johnson', avatar: 'M', views: '1.1M', likes: '32K', image: 'https://picsum.photos/400/700?random=11' },
     { id: 3, title: 'Music Cover', creator: 'Lisa Wang', avatar: 'L', views: '890K', likes: '28K', image: 'https://picsum.photos/400/700?random=12' },
-  ]
+  ], [])
 
-  const mockLiveStreams = [
+  const mockLiveStreams = React.useMemo(() => [
     { id: 1, title: 'Live Music Session', host: 'Sarah Chen', avatar: 'S', viewers: '3,456', image: 'https://picsum.photos/400/700?random=20', status: 'LIVE' },
     { id: 2, title: 'Gaming Marathon', host: 'Chris Thompson', avatar: 'C', viewers: '8,234', image: 'https://picsum.photos/400/700?random=21', status: 'LIVE' },
     { id: 3, title: 'Tech Talk', host: 'David Kim', avatar: 'D', viewers: '5,621', image: 'https://picsum.photos/400/700?random=22', status: 'LIVE' },
-  ]
+  ], [])
 
-  useEffect(() => {
-    loadPosts()
-    loadStories()
-  }, [])
-
-  async function loadPosts() {
+  // Load posts with useCallback to prevent unnecessary re-renders
+  const loadPosts = useCallback(async () => {
+    if (!session?.user?.id) return
+    
     setLoading(true)
     try {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from('posts')
         .select(`
           *,
@@ -62,38 +63,52 @@ export default function Home({ session }) {
         `)
         .order('created_at', { ascending: false })
       
+      if (error) throw error
       if (data) setPosts(data)
     } catch (error) {
       console.error('Error loading posts:', error)
+    } finally {
+      setLoading(false)
     }
-    setLoading(false)
-  }
+  }, [session?.user?.id])
 
-  async function loadStories() {
+  const loadStories = useCallback(() => {
     setStories(mockStories)
     setReels(mockReels)
     setLiveStreams(mockLiveStreams)
-  }
+  }, [mockStories, mockReels, mockLiveStreams])
+
+  useEffect(() => {
+    if (session?.user?.id) {
+      loadPosts()
+      loadStories()
+    }
+  }, [session?.user?.id, loadPosts, loadStories])
 
   async function uploadImage(file) {
+    if (!file) return null
+    
     const fileExt = file.name.split('.').pop()
     const fileName = `${session.user.id}_${Date.now()}.${fileExt}`
     const filePath = `${session.user.id}/${fileName}`
     
-    const { error } = await supabase.storage
-      .from('post-images')
-      .upload(filePath, file)
-    
-    if (error) {
+    try {
+      const { error } = await supabase.storage
+        .from('post-images')
+        .upload(filePath, file)
+      
+      if (error) throw error
+      
+      const { data: { publicUrl } } = supabase.storage
+        .from('post-images')
+        .getPublicUrl(filePath)
+      
+      return publicUrl
+    } catch (error) {
+      console.error('Upload error:', error)
       alert('Error uploading image: ' + error.message)
       return null
     }
-    
-    const { data: { publicUrl } } = supabase.storage
-      .from('post-images')
-      .getPublicUrl(filePath)
-    
-    return publicUrl
   }
 
   async function createPost() {
@@ -102,23 +117,32 @@ export default function Home({ session }) {
       return
     }
     
-    let imageUrl = null
-    if (selectedImage) {
-      imageUrl = await uploadImage(selectedImage)
-    }
+    setCreatingPost(true)
     
-    const { error } = await supabase
-      .from('posts')
-      .insert({
-        user_id: session.user.id,
-        content: newPostContent,
-        image_urls: imageUrl ? [imageUrl] : [],
-        location: postLocation || null,
-        tags: postTags || null,
-        privacy: postPrivacy
-      })
-    
-    if (!error) {
+    try {
+      let imageUrl = null
+      if (selectedImage) {
+        imageUrl = await uploadImage(selectedImage)
+        if (!imageUrl && selectedImage) {
+          setCreatingPost(false)
+          return
+        }
+      }
+      
+      const { error } = await supabase
+        .from('posts')
+        .insert({
+          user_id: session.user.id,
+          content: newPostContent.trim(),
+          image_urls: imageUrl ? [imageUrl] : [],
+          location: postLocation || null,
+          tags: postTags ? postTags.split(',').map(t => t.trim()) : null,
+          privacy: postPrivacy
+        })
+      
+      if (error) throw error
+      
+      // Reset form
       setNewPostContent('')
       setSelectedImage(null)
       setImagePreview(null)
@@ -126,18 +150,23 @@ export default function Home({ session }) {
       setPostTags('')
       setPostPrivacy('public')
       setShowCreatePost(false)
+      
+      // Reload posts
       await loadPosts()
-    } else {
+    } catch (error) {
+      console.error('Create post error:', error)
       alert('Error creating post: ' + error.message)
+    } finally {
+      setCreatingPost(false)
     }
   }
 
   function handleImageSelect(e) {
-    const file = e.target.files[0]
+    const file = e.target.files?.[0]
     if (file) {
       setSelectedImage(file)
       const reader = new FileReader()
-      reader.onload = (e) => setImagePreview(e.target.result)
+      reader.onload = (e) => setImagePreview(e.target?.result)
       reader.readAsDataURL(file)
     }
   }
@@ -145,7 +174,8 @@ export default function Home({ session }) {
   function removeImage() {
     setSelectedImage(null)
     setImagePreview(null)
-    document.getElementById('postImageInput').value = ''
+    if (fileInputRef.current) fileInputRef.current.value = ''
+    if (modalFileInputRef.current) modalFileInputRef.current.value = ''
   }
 
   function renderStoriesContent() {
@@ -211,6 +241,17 @@ export default function Home({ session }) {
     }
   }
 
+  const getUserDisplayName = () => {
+    return session?.user?.user_metadata?.display_name?.split(' ')[0] || 
+           session?.user?.email?.split('@')[0] || 
+           'User'
+  }
+
+  const getUserAvatar = () => {
+    return session?.user?.user_metadata?.avatar_url || 
+           `https://ui-avatars.com/api/?name=${(session?.user?.email?.[0] || 'U')}&background=7c3aed&color=fff`
+  }
+
   return (
     <div className="feed-container">
       {/* Stories Row */}
@@ -247,26 +288,32 @@ export default function Home({ session }) {
         <div className="post-input-row">
           <div className="post-avatar">
             <img 
-              src={session?.user?.user_metadata?.avatar_url || `https://ui-avatars.com/api/?name=${session?.user?.email?.[0] || 'U'}&background=7c3aed&color=fff`} 
+              src={getUserAvatar()} 
               alt="avatar" 
             />
           </div>
           <div className="post-input">
-            What's on your mind, {session?.user?.user_metadata?.display_name?.split(' ')[0] || session?.user?.email?.split('@')[0] || 'User'}?
+            What's on your mind, {getUserDisplayName()}?
           </div>
         </div>
         <div className="post-actions-row">
           <div className="post-action" onClick={(e) => { e.stopPropagation(); alert('Go Live feature coming soon'); }} title="Go Live & Notify Friends">
             <i className="fas fa-circle" style={{ color: '#f5576c' }}></i> Live
           </div>
-          <div className="post-action" onClick={(e) => { e.stopPropagation(); document.getElementById('postImageInput').click(); }}>
+          <div className="post-action" onClick={(e) => { e.stopPropagation(); fileInputRef.current?.click(); }}>
             <i className="fas fa-image"></i> Photo
           </div>
           <div className="post-action" onClick={(e) => { e.stopPropagation(); alert('Upload music coming soon'); }}>
             <i className="fas fa-music"></i> Music
           </div>
         </div>
-        <input type="file" id="postImageInput" accept="image/*" style={{ display: 'none' }} onChange={handleImageSelect} />
+        <input 
+          type="file" 
+          ref={fileInputRef}
+          accept="image/*" 
+          style={{ display: 'none' }} 
+          onChange={handleImageSelect} 
+        />
       </div>
 
       {/* Create Post Modal */}
@@ -277,10 +324,10 @@ export default function Home({ session }) {
             
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
               <div className="post-avatar" style={{ width: '40px', height: '40px' }}>
-                <img src={session?.user?.user_metadata?.avatar_url || `https://ui-avatars.com/api/?name=${session?.user?.email?.[0] || 'U'}&background=7c3aed&color=fff`} alt="" style={{ width: '100%', height: '100%', borderRadius: '50%' }} />
+                <img src={getUserAvatar()} alt="" style={{ width: '100%', height: '100%', borderRadius: '50%' }} />
               </div>
               <div>
-                <div style={{ fontWeight: 'bold' }}>{session?.user?.user_metadata?.display_name || session?.user?.email?.split('@')[0]}</div>
+                <div style={{ fontWeight: 'bold' }}>{getUserDisplayName()}</div>
                 <select className="form-select" style={{ padding: '4px 8px', fontSize: '12px', width: 'auto' }} value={postPrivacy} onChange={(e) => setPostPrivacy(e.target.value)}>
                   <option value="public">🌍 Public</option>
                   <option value="friends">👥 Friends</option>
@@ -321,16 +368,24 @@ export default function Home({ session }) {
             </div>
             
             <div style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
-              <button className="secondary-btn" style={{ flex: 1 }} onClick={() => document.getElementById('modalPostImageInput').click()}>
+              <button className="secondary-btn" style={{ flex: 1 }} onClick={() => modalFileInputRef.current?.click()}>
                 <i className="fas fa-image"></i> Photo
               </button>
               <button className="secondary-btn" style={{ flex: 1 }} onClick={() => alert('Video upload coming soon')}>
                 <i className="fas fa-video"></i> Video
               </button>
-              <input type="file" id="modalPostImageInput" accept="image/*" style={{ display: 'none' }} onChange={handleImageSelect} />
+              <input 
+                type="file" 
+                ref={modalFileInputRef}
+                accept="image/*" 
+                style={{ display: 'none' }} 
+                onChange={handleImageSelect} 
+              />
             </div>
             
-            <button className="apply-btn" onClick={createPost}>Post</button>
+            <button className="apply-btn" onClick={createPost} disabled={creatingPost}>
+              {creatingPost ? 'Posting...' : 'Post'}
+            </button>
             <button 
               className="secondary-btn" 
               style={{ marginTop: '8px', width: '100%' }} 
