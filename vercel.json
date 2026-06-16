@@ -1,3 +1,4 @@
+// vercel.json
 {
   "rewrites": [
     { "source": "/(.*)", "destination": "/index.html" }
@@ -6,7 +7,7 @@
   "outputDirectory": "dist",
   "framework": "vite",
   "env": {
-    "VITE_SUPABASE_URL": "@supabase_url",
-    "VITE_SUPABASE_ANON_KEY": "@supabase_anon_key"
+    "VITE_SUPABASE_URL=https://obiakzigrekmzatfskmo.supabase.co"
+    "VITE_SUPABASE_ANON_KEY=sb_publishable_W5oiASw2OZ6-3mcB6XmyrQ_vWymIg7M"
   }
 }
