@@ -3,7 +3,6 @@ import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import PostCard from '../components/PostCard'
-import Layout from '../components/Layout'
 
 export default function Home({ session }) {
   const navigate = useNavigate()
@@ -146,7 +145,6 @@ export default function Home({ session }) {
   }
 
   function openLiveNow() {
-    // Create modal showing all live streams
     const modal = document.createElement('div')
     modal.className = 'modal'
     modal.style.display = 'flex'
@@ -235,8 +233,9 @@ export default function Home({ session }) {
     }
   }
 
+  // Return the content WITHOUT wrapping in Layout
   return (
-    <Layout session={session}>
+    <>
       {/* Stories Row */}
       <div className="stories-wrapper">
         <div className="stories-header">
@@ -392,6 +391,6 @@ export default function Home({ session }) {
           />
         ))
       )}
-    </Layout>
+    </>
   )
 }
