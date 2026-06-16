@@ -365,18 +365,26 @@ export default function Login() {
             <div className="logo-text">
               Social<span>Vibe</span>
             </div>
+            
+            <div className="forgot-icon">🔑</div>
             <h2 className="auth-title">Reset Password</h2>
+            <p className="reset-info">Enter your email address and we'll send you a link to reset your password.</p>
             
             {resetSent ? (
               <>
-                <div className="auth-success">✓ Check your email for a reset link!</div>
+                <div className="auth-success">
+                  <div className="success-icon">✓</div>
+                  <div>
+                    <div className="success-title">Check your email!</div>
+                    <div className="success-subtitle">We've sent a password reset link to your email.</div>
+                  </div>
+                </div>
                 <button className="auth-btn-primary" onClick={() => setShowForgotPassword(false)}>
                   Back to Login
                 </button>
               </>
             ) : (
               <>
-                <p className="reset-info">Enter your email and we'll send you a link to reset your password.</p>
                 <div className="input-group">
                   <div className="input-icon">
                     <svg className="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -388,33 +396,479 @@ export default function Login() {
                       placeholder="Email address" 
                       value={resetEmail}
                       onChange={(e) => setResetEmail(e.target.value)}
+                      autoFocus
                     />
                   </div>
                 </div>
+                
                 {error && <div className="auth-error">{error}</div>}
+                
                 <button className="auth-btn-primary" onClick={handleResetPassword} disabled={loading}>
-                  {loading ? 'Sending...' : 'Send Reset Link'}
+                  {loading ? (
+                    <span className="btn-loader">
+                      <span className="btn-spinner"></span>
+                      Sending...
+                    </span>
+                  ) : (
+                    'Send Reset Link'
+                  )}
                 </button>
+                
                 <button className="auth-link" onClick={() => setShowForgotPassword(false)}>
-                  ← Back to Sign In
+                  <svg className="back-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M19 12H5M12 19l-7-7 7-7"/>
+                  </svg>
+                  Back to Sign In
                 </button>
               </>
             )}
           </div>
         </div>
+
         <style>{`
+          /* Wrapper and Background */
+          .auth-wrapper {
+            min-height: 100vh;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 12px;
+            position: relative;
+            overflow: hidden;
+            background: #0a0a1a;
+          }
+
+          .auth-background {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            overflow: hidden;
+          }
+
+          .gradient-orb {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(60px);
+            opacity: 0.3;
+            animation: float 20s ease-in-out infinite;
+          }
+
+          .orb1 {
+            width: 300px;
+            height: 300px;
+            background: linear-gradient(135deg, #7c3aed, #ec4899);
+            top: -100px;
+            right: -80px;
+            animation-delay: 0s;
+          }
+
+          .orb2 {
+            width: 250px;
+            height: 250px;
+            background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+            bottom: -80px;
+            left: -80px;
+            animation-delay: -5s;
+          }
+
+          .orb3 {
+            width: 200px;
+            height: 200px;
+            background: linear-gradient(135deg, #ec4899, #f59e0b);
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            animation-delay: -10s;
+          }
+
+          .orb4 {
+            width: 150px;
+            height: 150px;
+            background: linear-gradient(135deg, #06b6d4, #7c3aed);
+            bottom: 15%;
+            right: 15%;
+            animation-delay: -15s;
+          }
+
+          @keyframes float {
+            0%, 100% { transform: translate(0, 0) scale(1); }
+            25% { transform: translate(30px, -30px) scale(1.1); }
+            50% { transform: translate(-20px, 20px) scale(0.9); }
+            75% { transform: translate(20px, 30px) scale(1.05); }
+          }
+
+          /* Auth Container */
+          .auth-container {
+            position: relative;
+            z-index: 1;
+            width: 100%;
+            max-width: 380px;
+            margin: 0 auto;
+          }
+          
+          .auth-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 20px;
+            padding: 32px 24px 28px;
+            width: 100%;
+            box-shadow: 0 20px 40px -12px rgba(0, 0, 0, 0.4);
+            animation: slideUp 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+          }
+
+          @keyframes slideUp {
+            from {
+              opacity: 0;
+              transform: translateY(20px) scale(0.96);
+            }
+            to {
+              opacity: 1;
+              transform: translateY(0) scale(1);
+            }
+          }
+          
+          .logo-text {
+            font-size: 28px;
+            font-weight: 800;
+            cursor: pointer;
+            letter-spacing: -0.5px;
+            color: #000;
+            text-align: center;
+            margin-bottom: 8px;
+          }
+          
+          .logo-text span {
+            background: linear-gradient(135deg, #7c3aed, #ec4899);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+          }
+
+          .forgot-icon {
+            text-align: center;
+            font-size: 48px;
+            margin: 4px 0 8px;
+          }
+          
           .auth-title {
             text-align: center;
-            margin: 8px 0 16px;
-            font-weight: 600;
-            font-size: 20px;
+            margin: 0 0 4px;
+            font-weight: 700;
+            font-size: 22px;
             color: #1f2937;
+          }
+          
+          .reset-info {
+            color: #6b7280;
+            font-size: 13px;
+            margin-bottom: 20px;
+            text-align: center;
+            line-height: 1.5;
+          }
+          
+          .input-group {
+            margin-bottom: 12px;
+          }
+
+          .input-icon {
+            position: relative;
+          }
+
+          .input-icon .icon {
+            position: absolute;
+            left: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 16px;
+            height: 16px;
+            color: #9ca3af;
+            transition: color 0.3s ease;
+          }
+
+          .input-icon input:focus ~ .icon {
+            color: #7c3aed;
+          }
+          
+          .input-icon input {
+            width: 100%;
+            padding: 11px 12px 11px 38px;
+            border: 2px solid #e5e7eb;
+            border-radius: 10px;
+            background: #f9fafb;
+            font-size: 13px;
+            outline: none;
+            transition: all 0.3s ease;
+            color: #1f2937;
+          }
+          
+          .input-icon input:focus {
+            border-color: #7c3aed;
+            background: white;
+            box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.08);
+          }
+          
+          .input-icon input::placeholder {
+            color: #9ca3af;
+            font-size: 13px;
+          }
+          
+          .auth-btn-primary {
+            width: 100%;
+            padding: 11px;
+            border: none;
+            border-radius: 10px;
+            background: linear-gradient(135deg, #7c3aed, #6d28d9);
+            color: white;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+            margin-top: 4px;
+          }
+          
+          .auth-btn-primary::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent);
+            transition: left 0.5s;
+          }
+          
+          .auth-btn-primary:hover:not(:disabled)::before {
+            left: 100%;
+          }
+          
+          .auth-btn-primary:hover:not(:disabled) {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 20px rgba(124, 58, 237, 0.35);
+          }
+          
+          .auth-btn-primary:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+          }
+
+          .btn-loader {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+          }
+
+          .btn-spinner {
+            width: 16px;
+            height: 16px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-top: 2px solid #fff;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+          }
+
+          @keyframes spin {
+            to { transform: rotate(360deg); }
+          }
+          
+          .auth-link {
+            background: none;
+            border: none;
+            color: #6b7280;
+            cursor: pointer;
+            margin-top: 12px;
+            width: 100%;
+            text-align: center;
+            font-size: 13px;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+          }
+          
+          .auth-link:hover {
+            color: #7c3aed;
+          }
+
+          .back-icon {
+            width: 16px;
+            height: 16px;
+          }
+          
+          .auth-error {
+            background: rgba(239, 68, 68, 0.08);
+            border: 1px solid rgba(239, 68, 68, 0.15);
+            border-radius: 8px;
+            padding: 8px 12px;
+            margin-bottom: 10px;
+            color: #dc2626;
+            font-size: 12px;
+            text-align: center;
+            animation: shake 0.4s ease-in-out;
+          }
+
+          @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-6px); }
+            75% { transform: translateX(6px); }
+          }
+          
+          .auth-success {
+            background: rgba(34, 197, 94, 0.08);
+            border: 1px solid rgba(34, 197, 94, 0.15);
+            border-radius: 12px;
+            padding: 14px 16px;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+          }
+
+          .success-icon {
+            width: 32px;
+            height: 32px;
+            background: #10b981;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 18px;
+            font-weight: 700;
+            flex-shrink: 0;
+          }
+
+          .success-title {
+            font-weight: 600;
+            color: #065f46;
+            font-size: 14px;
+          }
+
+          .success-subtitle {
+            font-size: 12px;
+            color: #6b7280;
+            margin-top: 2px;
+          }
+
+          /* Mobile Responsive */
+          @media (max-width: 480px) {
+            .auth-wrapper {
+              padding: 8px;
+            }
+            
+            .auth-card {
+              padding: 24px 16px 20px;
+              border-radius: 16px;
+            }
+            
+            .logo-text {
+              font-size: 24px;
+            }
+
+            .forgot-icon {
+              font-size: 40px;
+            }
+            
+            .auth-title {
+              font-size: 20px;
+            }
+            
+            .reset-info {
+              font-size: 12px;
+            }
+            
+            .input-icon input {
+              padding: 10px 12px 10px 34px;
+              font-size: 12px;
+            }
+            
+            .input-icon .icon {
+              width: 14px;
+              height: 14px;
+              left: 10px;
+            }
+            
+            .auth-btn-primary {
+              padding: 10px;
+              font-size: 13px;
+            }
+          }
+
+          /* iPhone SE and small devices */
+          @media (max-width: 375px) {
+            .auth-card {
+              padding: 20px 14px 16px;
+            }
+            
+            .logo-text {
+              font-size: 22px;
+            }
+
+            .forgot-icon {
+              font-size: 36px;
+            }
+            
+            .auth-title {
+              font-size: 18px;
+            }
+            
+            .input-icon input {
+              padding: 8px 10px 8px 30px;
+              font-size: 11px;
+            }
+            
+            .auth-btn-primary {
+              padding: 8px;
+              font-size: 12px;
+            }
+          }
+
+          /* Landscape phones */
+          @media (max-height: 600px) and (orientation: landscape) {
+            .auth-card {
+              padding: 16px 20px 14px;
+            }
+            
+            .logo-text {
+              font-size: 20px;
+            }
+
+            .forgot-icon {
+              font-size: 28px;
+              margin: 2px 0 4px;
+            }
+            
+            .auth-title {
+              font-size: 16px;
+            }
+            
+            .reset-info {
+              font-size: 11px;
+              margin-bottom: 12px;
+            }
+            
+            .input-group {
+              margin-bottom: 8px;
+            }
+            
+            .input-icon input {
+              padding: 8px 12px 8px 34px;
+              font-size: 12px;
+            }
           }
         `}</style>
       </div>
     )
   }
 
+  // Login Page
   return (
     <div className="auth-wrapper">
       <div className="auth-background">
@@ -889,41 +1343,6 @@ export default function Login() {
           0%, 100% { transform: translateX(0); }
           25% { transform: translateX(-6px); }
           75% { transform: translateX(6px); }
-        }
-        
-        .auth-success {
-          background: rgba(34, 197, 94, 0.08);
-          border: 1px solid rgba(34, 197, 94, 0.15);
-          border-radius: 8px;
-          padding: 8px 12px;
-          margin-bottom: 12px;
-          color: #16a34a;
-          font-size: 12px;
-          text-align: center;
-        }
-        
-        .reset-info {
-          color: #6b7280;
-          font-size: 12px;
-          margin-bottom: 14px;
-          text-align: center;
-          line-height: 1.5;
-        }
-        
-        .auth-link {
-          background: none;
-          border: none;
-          color: #6b7280;
-          cursor: pointer;
-          margin-top: 10px;
-          width: 100%;
-          text-align: center;
-          font-size: 12px;
-          transition: all 0.3s ease;
-        }
-        
-        .auth-link:hover {
-          color: #7c3aed;
         }
 
         /* Mobile Responsive */
