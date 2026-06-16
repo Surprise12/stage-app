@@ -174,8 +174,9 @@ export default function Login() {
       } else {
         console.log('Login successful:', data)
         setLoading(false)
-        // Use window.location for more reliable redirect
-        window.location.href = '/'
+        // Use navigate instead of window.location
+        // This prevents full page reload and keeps React state
+        navigate('/', { replace: true })
       }
     } catch (err) {
       console.error('Login error:', err)

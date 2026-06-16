@@ -1,5 +1,5 @@
 // src/App.jsx
-import React, { useEffect, useState, useRef } from 'react'
+import React, { useEffect, useState } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { Analytics } from '@vercel/analytics/react'
 import { supabase } from './lib/supabase'
@@ -31,34 +31,38 @@ import AudioUploader from './components/AudioUploader'
 function App() {
   const [session, setSession] = useState(null)
   const [loading, setLoading] = useState(true)
-  const [initialized, setInitialized] = useState(false)
-  const mountedRef = useRef(true)
+  const [authInitialized, setAuthInitialized] = useState(false)
 
   useEffect(() => {
-    // Prevent duplicate initialization
-    if (initialized) return
-    setInitialized(true)
+    // Prevent multiple initializations
+    if (authInitialized) return
+    setAuthInitialized(true)
     
     console.log('App: Initializing...')
 
+    let isMounted = true
+
     // Get initial session
-    supabase.auth.getSession()
-      .then(({ data: { session } }) => {
-        if (!mountedRef.current) return
+    const getSession = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession()
+        if (!isMounted) return
         console.log('App: Session loaded:', session ? 'Yes' : 'No')
         setSession(session)
         setLoading(false)
-      })
-      .catch(err => {
+      } catch (err) {
         console.error('Session error:', err)
-        if (mountedRef.current) {
+        if (isMounted) {
           setLoading(false)
         }
-      })
+      }
+    }
+
+    getSession()
 
     // Subscribe to auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (!mountedRef.current) return
+      if (!isMounted) return
       console.log('App: Auth state changed:', _event, session ? 'Logged in' : 'Logged out')
       setSession(session)
       setLoading(false)
@@ -66,12 +70,12 @@ function App() {
 
     // Cleanup
     return () => {
-      mountedRef.current = false
+      isMounted = false
       subscription.unsubscribe()
     }
-  }, [initialized])
+  }, [authInitialized])
 
-  // Prevent infinite loading - add timeout fallback
+  // Loading timeout fallback
   useEffect(() => {
     const timer = setTimeout(() => {
       if (loading) {
