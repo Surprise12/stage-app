@@ -1,7 +1,9 @@
-// src/App.jsx - Add debug logging
+// src/App.jsx - Add debug logging WITH IMPORTS
 import React, { useEffect, useState } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { supabase } from './lib/supabase'
+import Login from './pages/Login'  // ← ADD THIS
+import Home from './pages/Home'    // ← ADD THIS
 
 function App() {
   const [session, setSession] = useState(null)
