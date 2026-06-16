@@ -1,4 +1,4 @@
-// src/App.jsx - Fixed full version
+// src/App.jsx - COMPLETE FIX
 import React, { useEffect, useState } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { Analytics } from '@vercel/analytics/react'
@@ -33,49 +33,45 @@ function App() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    console.log('🔍 App: Starting...')
+    console.log('🔍 App: Initializing...')
     
     let isMounted = true
 
-    // Get initial session
     const getSession = async () => {
       try {
         const { data: { session } } = await supabase.auth.getSession()
         if (!isMounted) return
-        console.log('🔍 Session loaded:', session ? 'Yes' : 'No')
+        console.log('🔍 Session loaded:', session ? `✅ ${session.user.email}` : '❌ No session')
         setSession(session)
-        setLoading(false)
       } catch (err) {
         console.error('❌ Session error:', err)
-        if (isMounted) {
-          setLoading(false)
-        }
+      } finally {
+        if (isMounted) setLoading(false)
       }
     }
 
     getSession()
 
-    // Subscribe to auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (!isMounted) return
-      console.log('🔍 Auth state changed:', _event, session ? 'Logged in' : 'Logged out')
+      console.log('🔍 Auth event:', event, session ? `✅ ${session.user.email}` : '❌ No session')
       setSession(session)
       setLoading(false)
     })
 
-    // Cleanup
     return () => {
       isMounted = false
       subscription.unsubscribe()
     }
-  }, []) // ← REMOVED authInitialized dependency
+  }, [])
 
   if (loading) {
     return (
       <div style={{ 
         display: 'flex', 
         alignItems: 'center', 
-        justifyItems: 'center', 
+        justifyContent: 'center', 
         minHeight: '100vh',
         background: '#0a0a1a'
       }}>
@@ -112,7 +108,7 @@ function App() {
             !session ? <Register /> : <Navigate to="/" replace />
           } />
           
-          {/* Home Route - Direct session check */}
+          {/* Home Route */}
           <Route path="/" element={
             session ? (
               <Layout session={session}>
@@ -332,7 +328,7 @@ function App() {
             )
           } />
           
-          {/* Catch all - redirect to home */}
+          {/* Catch all */}
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </BrowserRouter>
