@@ -9,9 +9,18 @@ export default function Layout({ children, session }) {
   const [windowWidth, setWindowWidth] = useState(window.innerWidth)
   const location = useLocation()
 
+  // Debug log
+  console.log('📐 Layout rendering:', {
+    hasSession: !!session,
+    isAuthPage: location.pathname === '/login' || location.pathname === '/register',
+    pathname: location.pathname,
+    isMobile: windowWidth < 768
+  })
+
   // Safety check - if no session, redirect to login
   useEffect(() => {
     if (!session) {
+      console.log('📐 No session, redirecting to login')
       window.location.href = '/login'
     }
   }, [session])

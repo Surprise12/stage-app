@@ -1,4 +1,4 @@
-// src/pages/Home.jsx
+// src/pages/Home.jsx - FIXED VERSION
 import React, { useState, useEffect, useCallback, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
@@ -23,6 +23,8 @@ export default function Home({ session }) {
   const fileInputRef = useRef(null)
   const modalFileInputRef = useRef(null)
 
+  console.log('🏠 Home component rendering with session:', session?.user?.email)
+
   // Mock data - memoized to prevent recreation
   const mockStories = React.useMemo(() => [
     { id: 1, name: 'Sarah Chen', avatar: 'S', image: 'https://picsum.photos/400/700?random=1', time: '5 min ago' },
@@ -45,8 +47,13 @@ export default function Home({ session }) {
 
   // Load posts with useCallback to prevent unnecessary re-renders
   const loadPosts = useCallback(async () => {
-    if (!session?.user?.id) return
+    if (!session?.user?.id) {
+      console.log('⚠️ No session user ID, skipping loadPosts')
+      setLoading(false)
+      return
+    }
     
+    console.log('📝 Loading posts for user:', session.user.id)
     setLoading(true)
     try {
       const { data, error } = await supabase
@@ -63,25 +70,39 @@ export default function Home({ session }) {
         `)
         .order('created_at', { ascending: false })
       
-      if (error) throw error
-      if (data) setPosts(data)
+      if (error) {
+        console.error('❌ Supabase error loading posts:', error)
+        // If table doesn't exist, just show empty state
+        if (error.code === '42P01') {
+          console.log('📝 Posts table doesn\'t exist yet, showing empty state')
+          setPosts([])
+        }
+      } else if (data) {
+        console.log('📝 Posts loaded:', data.length)
+        setPosts(data)
+      }
     } catch (error) {
-      console.error('Error loading posts:', error)
+      console.error('❌ Error loading posts:', error)
     } finally {
       setLoading(false)
     }
   }, [session?.user?.id])
 
   const loadStories = useCallback(() => {
+    console.log('📚 Loading stories...')
     setStories(mockStories)
     setReels(mockReels)
     setLiveStreams(mockLiveStreams)
   }, [mockStories, mockReels, mockLiveStreams])
 
   useEffect(() => {
+    console.log('🏠 Home useEffect triggered')
     if (session?.user?.id) {
       loadPosts()
       loadStories()
+    } else {
+      console.log('⚠️ No session, setting loading to false')
+      setLoading(false)
     }
   }, [session?.user?.id, loadPosts, loadStories])
 
