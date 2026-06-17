@@ -1,4 +1,4 @@
-// src/pages/Home.jsx - WITH INLINE STYLES FALLBACK
+// src/pages/Home.jsx - Updated with proper navigation
 import React, { useState, useEffect, useCallback, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
@@ -23,28 +23,27 @@ export default function Home({ session }) {
   const fileInputRef = useRef(null)
   const modalFileInputRef = useRef(null)
 
-  console.log('🏠 Home component rendering with session:', session?.user?.email)
-
   // Mock data
   const mockStories = React.useMemo(() => [
-    { id: 1, name: 'Sarah Chen', avatar: 'S', image: 'https://picsum.photos/400/700?random=1', time: '5 min ago' },
-    { id: 2, name: 'Marcus Webb', avatar: 'M', image: 'https://picsum.photos/400/700?random=2', time: '15 min ago' },
-    { id: 3, name: 'Elena Rodriguez', avatar: 'E', image: 'https://picsum.photos/400/700?random=3', time: '1 hour ago' },
-    { id: 4, name: 'Alex Rivera', avatar: 'A', image: 'https://picsum.photos/400/700?random=4', time: '2 hours ago' },
+    { id: 1, name: 'Sarah Chen', avatar: 'S', image: 'https://picsum.photos/400/700?random=1', time: '5 min ago', userId: 'user1' },
+    { id: 2, name: 'Marcus Webb', avatar: 'M', image: 'https://picsum.photos/400/700?random=2', time: '15 min ago', userId: 'user2' },
+    { id: 3, name: 'Elena Rodriguez', avatar: 'E', image: 'https://picsum.photos/400/700?random=3', time: '1 hour ago', userId: 'user3' },
+    { id: 4, name: 'Alex Rivera', avatar: 'A', image: 'https://picsum.photos/400/700?random=4', time: '2 hours ago', userId: 'user4' },
   ], [])
 
   const mockReels = React.useMemo(() => [
-    { id: 1, title: 'Epic Dance Move', creator: 'Emma Watson', avatar: 'E', views: '2.3M', likes: '45K', image: 'https://picsum.photos/400/700?random=10' },
-    { id: 2, title: 'Comedy Sketch', creator: 'Mike Johnson', avatar: 'M', views: '1.1M', likes: '32K', image: 'https://picsum.photos/400/700?random=11' },
-    { id: 3, title: 'Music Cover', creator: 'Lisa Wang', avatar: 'L', views: '890K', likes: '28K', image: 'https://picsum.photos/400/700?random=12' },
+    { id: 1, title: 'Epic Dance Move', creator: 'Emma Watson', avatar: 'E', views: '2.3M', likes: '45K', image: 'https://picsum.photos/400/700?random=10', userId: 'user5' },
+    { id: 2, title: 'Comedy Sketch', creator: 'Mike Johnson', avatar: 'M', views: '1.1M', likes: '32K', image: 'https://picsum.photos/400/700?random=11', userId: 'user6' },
+    { id: 3, title: 'Music Cover', creator: 'Lisa Wang', avatar: 'L', views: '890K', likes: '28K', image: 'https://picsum.photos/400/700?random=12', userId: 'user7' },
   ], [])
 
   const mockLiveStreams = React.useMemo(() => [
-    { id: 1, title: 'Live Music Session', host: 'Sarah Chen', avatar: 'S', viewers: '3,456', image: 'https://picsum.photos/400/700?random=20', status: 'LIVE' },
-    { id: 2, title: 'Gaming Marathon', host: 'Chris Thompson', avatar: 'C', viewers: '8,234', image: 'https://picsum.photos/400/700?random=21', status: 'LIVE' },
-    { id: 3, title: 'Tech Talk', host: 'David Kim', avatar: 'D', viewers: '5,621', image: 'https://picsum.photos/400/700?random=22', status: 'LIVE' },
+    { id: 1, title: 'Live Music Session', host: 'Sarah Chen', avatar: 'S', viewers: '3,456', image: 'https://picsum.photos/400/700?random=20', status: 'LIVE', userId: 'user1' },
+    { id: 2, title: 'Gaming Marathon', host: 'Chris Thompson', avatar: 'C', viewers: '8,234', image: 'https://picsum.photos/400/700?random=21', status: 'LIVE', userId: 'user8' },
+    { id: 3, title: 'Tech Talk', host: 'David Kim', avatar: 'D', viewers: '5,621', image: 'https://picsum.photos/400/700?random=22', status: 'LIVE', userId: 'user9' },
   ], [])
 
+  // Load posts
   const loadPosts = useCallback(async () => {
     if (!session?.user?.id) {
       setLoading(false)
@@ -95,6 +94,23 @@ export default function Home({ session }) {
       setLoading(false)
     }
   }, [session?.user?.id, loadPosts, loadStories])
+
+  // Helper functions for navigation
+  const openStories = (userId) => {
+    navigate(`/stories/${userId}`)
+  }
+
+  const openReels = (userId) => {
+    navigate(`/reels/${userId}`)
+  }
+
+  const openLive = (userId) => {
+    navigate(`/live/${userId || ''}`)
+  }
+
+  const openRooms = () => {
+    navigate('/rooms')
+  }
 
   async function uploadImage(file) {
     if (!file) return null
@@ -199,7 +215,7 @@ export default function Home({ session }) {
               key={story.id} 
               className="story-card" 
               style={{ backgroundImage: `url(${story.image})` }}
-              onClick={() => alert(`Viewing ${story.name}'s story`)}
+              onClick={() => openStories(story.userId)}
             >
               <div className="story-avatar">{story.avatar}</div>
               <div className="story-preview">{story.name.split(' ')[0]}</div>
@@ -210,12 +226,17 @@ export default function Home({ session }) {
     } else if (activeStoryTab === 'reels') {
       return (
         <>
-          <div className="story-card" onClick={() => alert('Create Reel feature coming soon')} style={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' }}>
+          <div className="story-card" onClick={() => navigate('/music')} style={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' }}>
             <div className="story-avatar" style={{ fontSize: '30px' }}>+</div>
             <div className="story-preview">Create Reel</div>
           </div>
           {reels.map(reel => (
-            <div key={reel.id} className="story-card" style={{ backgroundImage: `url(${reel.image})` }} onClick={() => alert(`Playing reel: ${reel.title}`)}>
+            <div 
+              key={reel.id} 
+              className="story-card" 
+              style={{ backgroundImage: `url(${reel.image})` }}
+              onClick={() => openReels(reel.userId)}
+            >
               <div className="story-avatar">{reel.avatar}</div>
               <div className="story-preview" style={{ fontSize: '12px', lineHeight: '1.2' }}>
                 {reel.title} ({reel.views})
@@ -224,19 +245,24 @@ export default function Home({ session }) {
           ))}
         </>
       )
-    } else {
+    } else if (activeStoryTab === 'live') {
       return (
         <>
-          <div className="story-card" onClick={() => alert('Go Live feature coming soon')} style={{ background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)' }}>
+          <div className="story-card" onClick={() => openLive()} style={{ background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)' }}>
             <div className="story-avatar" style={{ fontSize: '30px' }}>🔴</div>
             <div className="story-preview">Go Live</div>
           </div>
-          <div className="story-card" onClick={() => alert('Live Now')} style={{ background: 'linear-gradient(135deg, #ff6b6b 0%, #ee5a52 100%)' }}>
-            <div className="story-avatar" style={{ fontSize: '30px' }}>📺</div>
-            <div className="story-preview">Live Now</div>
+          <div className="story-card" onClick={openRooms} style={{ background: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)' }}>
+            <div className="story-avatar" style={{ fontSize: '30px' }}>🎙️</div>
+            <div className="story-preview">Rooms</div>
           </div>
           {liveStreams.map(live => (
-            <div key={live.id} className="story-card" style={{ backgroundImage: `url(${live.image})` }} onClick={() => navigate('/live')}>
+            <div 
+              key={live.id} 
+              className="story-card" 
+              style={{ backgroundImage: `url(${live.image})` }}
+              onClick={() => openLive(live.userId)}
+            >
               <div className="story-avatar" style={{ border: '3px solid red' }}>{live.avatar}</div>
               <div className="story-preview" style={{ fontSize: '11px', lineHeight: '1.2' }}>
                 <strong style={{ color: 'red' }}>LIVE</strong><br />
@@ -260,7 +286,6 @@ export default function Home({ session }) {
            `https://ui-avatars.com/api/?name=${(session?.user?.email?.[0] || 'U')}&background=7c3aed&color=fff`
   }
 
-  // ✅ ADD INLINE STYLES FALLBACK
   const styles = {
     feedContainer: {
       maxWidth: '680px',
@@ -460,7 +485,12 @@ export default function Home({ session }) {
           >
             Live
           </div>
-          <div style={styles.storyTab} onClick={() => alert('Audio Rooms coming soon')}>Rooms</div>
+          <div 
+            style={styles.storyTab} 
+            onClick={openRooms}
+          >
+            Rooms
+          </div>
         </div>
         
         <div style={styles.storiesRow}>
@@ -483,7 +513,7 @@ export default function Home({ session }) {
           </div>
         </div>
         <div style={styles.postActionsRow}>
-          <div style={styles.postAction} onClick={(e) => { e.stopPropagation(); alert('Go Live feature coming soon'); }}>
+          <div style={styles.postAction} onClick={(e) => { e.stopPropagation(); openLive(); }} title="Go Live & Notify Friends">
             <i className="fas fa-circle" style={{ color: '#f5576c' }}></i> Live
           </div>
           <div style={styles.postAction} onClick={(e) => { e.stopPropagation(); fileInputRef.current?.click(); }}>

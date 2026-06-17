@@ -95,6 +95,7 @@ function App() {
     }
   }, [])
 
+  // Safety check for redirect loops
   useEffect(() => {
     if (!loading) {
       if (session && window.location.pathname === '/login') {
@@ -142,81 +143,197 @@ function App() {
       <Analytics />
       <BrowserRouter>
         <Routes>
-          {/* Auth Routes - No Layout */}
-          <Route path="/login" element={!session ? <Login /> : <Navigate to="/" replace />} />
-          <Route path="/register" element={!session ? <Register /> : <Navigate to="/" replace />} />
+          {/* ============================================
+              AUTH ROUTES - No Layout
+              ============================================ */}
+          <Route path="/login" element={
+            !session ? <Login /> : <Navigate to="/" replace />
+          } />
+          <Route path="/register" element={
+            !session ? <Register /> : <Navigate to="/" replace />
+          } />
           
-          {/* Main Routes with Layout */}
-          <Route path="/" element={session ? <Layout session={session}><Home session={session} /></Layout> : <Navigate to="/login" />} />
-          <Route path="/profile/:id?" element={session ? <Layout session={session}><Profile session={session} /></Layout> : <Navigate to="/login" />} />
-          <Route path="/settings" element={session ? <Layout session={session}><Settings session={session} /></Layout> : <Navigate to="/login" />} />
-          <Route path="/search" element={session ? <Layout session={session}><Search /></Layout> : <Navigate to="/login" />} />
+          {/* ============================================
+              MAIN ROUTES - With Layout
+              ============================================ */}
+          
+          {/* Home & Social */}
+          <Route path="/" element={
+            session ? <Layout session={session}><Home session={session} /></Layout> : <Navigate to="/login" />
+          } />
+          <Route path="/profile/:id?" element={
+            session ? <Layout session={session}><Profile session={session} /></Layout> : <Navigate to="/login" />
+          } />
+          <Route path="/settings" element={
+            session ? <Layout session={session}><Settings session={session} /></Layout> : <Navigate to="/login" />
+          } />
+          <Route path="/search" element={
+            session ? <Layout session={session}><Search /></Layout> : <Navigate to="/login" />
+          } />
           
           {/* Friends & Notifications */}
-          <Route path="/friends" element={session ? <Layout session={session}><Friends session={session} /></Layout> : <Navigate to="/login" />} />
-          <Route path="/notifications" element={session ? <Layout session={session}><Notifications session={session} /></Layout> : <Navigate to="/login" />} />
+          <Route path="/friends" element={
+            session ? <Layout session={session}><Friends session={session} /></Layout> : <Navigate to="/login" />
+          } />
+          <Route path="/notifications" element={
+            session ? <Layout session={session}><Notifications session={session} /></Layout> : <Navigate to="/login" />
+          } />
           
-          {/* Stories, Reels, Live */}
-          <Route path="/stories/:userId" element={session ? <StoriesViewer session={session} /> : <Navigate to="/login" />} />
-          <Route path="/reels/:userId" element={session ? <ReelsViewer session={session} /> : <Navigate to="/login" />} />
-          <Route path="/live/:userId?" element={session ? <LiveViewer session={session} /> : <Navigate to="/login" />} />
-          <Route path="/rooms" element={session ? <Rooms session={session} /> : <Navigate to="/login" />} />
+          {/* Stories, Reels, Live (Full Screen - No Layout) */}
+          <Route path="/stories/:userId" element={
+            session ? <StoriesViewer session={session} /> : <Navigate to="/login" />
+          } />
+          <Route path="/reels/:userId" element={
+            session ? <ReelsViewer session={session} /> : <Navigate to="/login" />
+          } />
+          <Route path="/live/:userId?" element={
+            session ? <LiveViewer session={session} /> : <Navigate to="/login" />
+          } />
+          <Route path="/rooms" element={
+            session ? <Rooms session={session} /> : <Navigate to="/login" />
+          } />
           
-          {/* Artist Hub */}
-          <Route path="/verified-artists" element={session ? <Layout session={session}><VerifiedArtists session={session} /></Layout> : <Navigate to="/login" />} />
-          <Route path="/rising-stars" element={session ? <Layout session={session}><RisingStars session={session} /></Layout> : <Navigate to="/login" />} />
-          <Route path="/collaborations" element={session ? <Layout session={session}><Collaborations session={session} /></Layout> : <Navigate to="/login" />} />
-          <Route path="/artist-application" element={session ? <Layout session={session}><ArtistApplication session={session} /></Layout> : <Navigate to="/login" />} />
+          {/* ============================================
+              ARTIST HUB
+              ============================================ */}
+          <Route path="/verified-artists" element={
+            session ? <Layout session={session}><VerifiedArtists session={session} /></Layout> : <Navigate to="/login" />
+          } />
+          <Route path="/rising-stars" element={
+            session ? <Layout session={session}><RisingStars session={session} /></Layout> : <Navigate to="/login" />
+          } />
+          <Route path="/collaborations" element={
+            session ? <Layout session={session}><Collaborations session={session} /></Layout> : <Navigate to="/login" />
+          } />
+          <Route path="/artist-application" element={
+            session ? <Layout session={session}><ArtistApplication session={session} /></Layout> : <Navigate to="/login" />
+          } />
           
-          {/* Groups */}
-          <Route path="/groups" element={session ? <Layout session={session}><Groups session={session} /></Layout> : <Navigate to="/login" />} />
-          <Route path="/groups/:id" element={session ? <Layout session={session}><GroupDetail session={session} /></Layout> : <Navigate to="/login" />} />
-          <Route path="/create-group" element={session ? <Layout session={session}><CreateGroup session={session} /></Layout> : <Navigate to="/login" />} />
+          {/* ============================================
+              GROUPS
+              ============================================ */}
+          <Route path="/groups" element={
+            session ? <Layout session={session}><Groups session={session} /></Layout> : <Navigate to="/login" />
+          } />
+          <Route path="/groups/:id" element={
+            session ? <Layout session={session}><GroupDetail session={session} /></Layout> : <Navigate to="/login" />
+          } />
+          <Route path="/create-group" element={
+            session ? <Layout session={session}><CreateGroup session={session} /></Layout> : <Navigate to="/login" />
+          } />
           
-          {/* Pages */}
-          <Route path="/pages" element={session ? <Layout session={session}><Pages session={session} /></Layout> : <Navigate to="/login" />} />
-          <Route path="/pages/:id" element={session ? <Layout session={session}><PageDetail session={session} /></Layout> : <Navigate to="/login" />} />
-          <Route path="/create-page" element={session ? <Layout session={session}><CreatePage session={session} /></Layout> : <Navigate to="/login" />} />
+          {/* ============================================
+              PAGES
+              ============================================ */}
+          <Route path="/pages" element={
+            session ? <Layout session={session}><Pages session={session} /></Layout> : <Navigate to="/login" />
+          } />
+          <Route path="/pages/:id" element={
+            session ? <Layout session={session}><PageDetail session={session} /></Layout> : <Navigate to="/login" />
+          } />
+          <Route path="/create-page" element={
+            session ? <Layout session={session}><CreatePage session={session} /></Layout> : <Navigate to="/login" />
+          } />
           
-          {/* Tree Bar Menu Routes */}
-          <Route path="/upgrades" element={session ? <Layout session={session}><Upgrades session={session} /></Layout> : <Navigate to="/login" />} />
-          <Route path="/advertise" element={session ? <Layout session={session}><Advertise session={session} /></Layout> : <Navigate to="/login" />} />
-          <Route path="/help" element={session ? <Layout session={session}><Help session={session} /></Layout> : <Navigate to="/login" />} />
-          <Route path="/about" element={session ? <Layout session={session}><About session={session} /></Layout> : <Navigate to="/login" />} />
+          {/* ============================================
+              TREE BAR MENU ROUTES
+              ============================================ */}
+          <Route path="/upgrades" element={
+            session ? <Layout session={session}><Upgrades session={session} /></Layout> : <Navigate to="/login" />
+          } />
+          <Route path="/advertise" element={
+            session ? <Layout session={session}><Advertise session={session} /></Layout> : <Navigate to="/login" />
+          } />
+          <Route path="/help" element={
+            session ? <Layout session={session}><Help session={session} /></Layout> : <Navigate to="/login" />
+          } />
+          <Route path="/about" element={
+            session ? <Layout session={session}><About session={session} /></Layout> : <Navigate to="/login" />
+          } />
           
-          {/* Creator Routes */}
-          <Route path="/music" element={session ? <Layout session={session}><MusicVideos session={session} /></Layout> : <Navigate to="/login" />} />
-          <Route path="/beats" element={session ? <Layout session={session}><BeatMarketplace session={session} /></Layout> : <Navigate to="/login" />} />
-          <Route path="/audio" element={session ? <Layout session={session}><AudioUploader session={session} /></Layout> : <Navigate to="/login" />} />
-          <Route path="/royalty/:trackId?" element={session ? <Layout session={session}><RoyaltySplit session={session} /></Layout> : <Navigate to="/login" />} />
+          {/* ============================================
+              CREATOR ROUTES
+              ============================================ */}
+          <Route path="/music" element={
+            session ? <Layout session={session}><MusicVideos session={session} /></Layout> : <Navigate to="/login" />
+          } />
+          <Route path="/beats" element={
+            session ? <Layout session={session}><BeatMarketplace session={session} /></Layout> : <Navigate to="/login" />
+          } />
+          <Route path="/audio" element={
+            session ? <Layout session={session}><AudioUploader session={session} /></Layout> : <Navigate to="/login" />
+          } />
+          <Route path="/royalty/:trackId?" element={
+            session ? <Layout session={session}><RoyaltySplit session={session} /></Layout> : <Navigate to="/login" />
+          } />
           
-          {/* Collaboration Routes */}
-          <Route path="/collab" element={session ? <Layout session={session}><CollaborationFinder session={session} /></Layout> : <Navigate to="/login" />} />
-          <Route path="/subscribe/:creatorId?" element={session ? <Layout session={session}><FanSubscriptions session={session} /></Layout> : <Navigate to="/login" />} />
+          {/* ============================================
+              COLLABORATION ROUTES
+              ============================================ */}
+          <Route path="/collab" element={
+            session ? <Layout session={session}><CollaborationFinder session={session} /></Layout> : <Navigate to="/login" />
+          } />
+          <Route path="/subscribe/:creatorId?" element={
+            session ? <Layout session={session}><FanSubscriptions session={session} /></Layout> : <Navigate to="/login" />
+          } />
           
-          {/* Event Routes */}
-          <Route path="/concerts" element={session ? <Layout session={session}><VirtualConcert session={session} /></Layout> : <Navigate to="/login" />} />
-          <Route path="/events" element={session ? <Layout session={session}><EventsManager session={session} /></Layout> : <Navigate to="/login" />} />
+          {/* ============================================
+              EVENT ROUTES
+              ============================================ */}
+          <Route path="/concerts" element={
+            session ? <Layout session={session}><VirtualConcert session={session} /></Layout> : <Navigate to="/login" />
+          } />
+          <Route path="/events" element={
+            session ? <Layout session={session}><EventsManager session={session} /></Layout> : <Navigate to="/login" />
+          } />
           
-          {/* Community Routes */}
-          <Route path="/gigs" element={session ? <Layout session={session}><GigBoard session={session} /></Layout> : <Navigate to="/login" />} />
-          <Route path="/collectives" element={session ? <Layout session={session}><Collectives session={session} /></Layout> : <Navigate to="/login" />} />
+          {/* ============================================
+              COMMUNITY ROUTES
+              ============================================ */}
+          <Route path="/gigs" element={
+            session ? <Layout session={session}><GigBoard session={session} /></Layout> : <Navigate to="/login" />
+          } />
+          <Route path="/collectives" element={
+            session ? <Layout session={session}><Collectives session={session} /></Layout> : <Navigate to="/login" />
+          } />
           
-          {/* Live & Media Routes */}
-          <Route path="/live-streaming" element={session ? <Layout session={session}><LiveStreaming session={session} /></Layout> : <Navigate to="/login" />} />
-          <Route path="/studios" element={session ? <Layout session={session}><StudioBooking session={session} /></Layout> : <Navigate to="/login" />} />
+          {/* ============================================
+              LIVE & MEDIA ROUTES
+              ============================================ */}
+          <Route path="/live-streaming" element={
+            session ? <Layout session={session}><LiveStreaming session={session} /></Layout> : <Navigate to="/login" />
+          } />
+          <Route path="/studios" element={
+            session ? <Layout session={session}><StudioBooking session={session} /></Layout> : <Navigate to="/login" />
+          } />
           
-          {/* Commerce Routes */}
-          <Route path="/marketplace" element={session ? <Layout session={session}><Marketplace session={session} /></Layout> : <Navigate to="/login" />} />
+          {/* ============================================
+              COMMERCE ROUTES
+              ============================================ */}
+          <Route path="/marketplace" element={
+            session ? <Layout session={session}><Marketplace session={session} /></Layout> : <Navigate to="/login" />
+          } />
           
-          {/* Communication Routes */}
-          <Route path="/messages" element={session ? <Layout session={session}><Messaging session={session} /></Layout> : <Navigate to="/login" />} />
+          {/* ============================================
+              COMMUNICATION ROUTES
+              ============================================ */}
+          <Route path="/messages" element={
+            session ? <Layout session={session}><Messaging session={session} /></Layout> : <Navigate to="/login" />
+          } />
           
-          {/* Analytics & Admin */}
-          <Route path="/analytics" element={session ? <Layout session={session}><AnalyticsPage session={session} /></Layout> : <Navigate to="/login" />} />
-          <Route path="/admin" element={session ? <Layout session={session}><AdminPanel session={session} /></Layout> : <Navigate to="/login" />} />
+          {/* ============================================
+              ANALYTICS & ADMIN
+              ============================================ */}
+          <Route path="/analytics" element={
+            session ? <Layout session={session}><AnalyticsPage session={session} /></Layout> : <Navigate to="/login" />
+          } />
+          <Route path="/admin" element={
+            session ? <Layout session={session}><AdminPanel session={session} /></Layout> : <Navigate to="/login" />
+          } />
           
-          {/* Catch all */}
+          {/* ============================================
+              CATCH ALL
+              ============================================ */}
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </BrowserRouter>
