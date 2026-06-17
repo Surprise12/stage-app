@@ -1,5 +1,5 @@
-// src/pages/Profile.jsx
-import React, { useEffect, useState } from 'react'
+// src/pages/Profile.jsx - ENHANCED VERSION
+import React, { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 
@@ -7,537 +7,603 @@ export default function Profile({ session }) {
   const { id } = useParams()
   const navigate = useNavigate()
   const [profile, setProfile] = useState(null)
-  const [stats, setStats] = useState({ followers: 0, following: 0, posts: 0, photos: 0, videos: 0 })
-  const [isFollowing, setIsFollowing] = useState(false)
+  const [posts, setPosts] = useState([])
+  const [stories, setStories] = useState([])
+  const [reels, setReels] = useState([])
+  const [friends, setFriends] = useState([])
   const [loading, setLoading] = useState(true)
-  const [isOwnProfile, setIsOwnProfile] = useState(false)
   const [activeTab, setActiveTab] = useState('posts')
-  const [userPosts, setUserPosts] = useState([])
-  const [userPhotos, setUserPhotos] = useState([])
-  const [userVideos, setUserVideos] = useState([])
-  const [userFriends, setUserFriends] = useState([])
+  const [isFollowing, setIsFollowing] = useState(false)
+  const [isFriend, setIsFriend] = useState(false)
+  const [showStoriesModal, setShowStoriesModal] = useState(false)
 
-  const userId = id || session?.user?.id
+  const userId = id || session.user.id
+  const isOwnProfile = userId === session.user.id
 
   useEffect(() => {
-    if (userId) {
-      loadProfile()
-      loadUserContent()
-      loadUserFriends()
-    }
-  }, [userId, session])
+    loadProfile()
+    loadPosts()
+    loadStories()
+    loadReels()
+    loadFriends()
+    checkFollowStatus()
+    checkFriendStatus()
+  }, [userId])
 
   async function loadProfile() {
     setLoading(true)
-    
-    const { data: profileData } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', userId)
-      .single()
-    
-    setProfile(profileData)
-    setIsOwnProfile(session?.user?.id === userId)
-    
-    // Load followers count
-    const { count: followersCount } = await supabase
-      .from('follows')
-      .select('*', { count: 'exact', head: true })
-      .eq('following_id', userId)
-    
-    // Load following count
-    const { count: followingCount } = await supabase
-      .from('follows')
-      .select('*', { count: 'exact', head: true })
-      .eq('follower_id', userId)
-    
-    // Load posts count
-    const { count: postsCount } = await supabase
-      .from('posts')
-      .select('*', { count: 'exact', head: true })
-      .eq('user_id', userId)
-    
-    // Load photos count
-    const { count: photosCount } = await supabase
-      .from('posts')
-      .select('*', { count: 'exact', head: true })
-      .eq('user_id', userId)
-      .not('image_urls', 'is', null)
-    
-    // Load videos count
-    const { count: videosCount } = await supabase
-      .from('videos')
-      .select('*', { count: 'exact', head: true })
-      .eq('user_id', userId)
-    
-    setStats({
-      followers: followersCount || 0,
-      following: followingCount || 0,
-      posts: postsCount || 0,
-      photos: photosCount || 0,
-      videos: videosCount || 0
-    })
-    
-    // Check if current user follows this profile
-    if (session && !isOwnProfile) {
-      const { data: followData } = await supabase
+    try {
+      const { data } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .single()
+      if (data) setProfile(data)
+    } catch (error) {
+      console.error('Error loading profile:', error)
+    }
+    setLoading(false)
+  }
+
+  async function loadPosts() {
+    try {
+      const { data } = await supabase
+        .from('posts')
+        .select('*')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false })
+        .limit(20)
+      if (data) setPosts(data)
+    } catch (error) {
+      console.error('Error loading posts:', error)
+    }
+  }
+
+  async function loadStories() {
+    // Stories that are less than 24 hours old
+    try {
+      const twentyFourHoursAgo = new Date()
+      twentyFourHoursAgo.setHours(twentyFourHoursAgo.getHours() - 24)
+      
+      const { data } = await supabase
+        .from('stories')
+        .select('*')
+        .eq('user_id', userId)
+        .gte('created_at', twentyFourHoursAgo.toISOString())
+        .order('created_at', { ascending: false })
+      if (data) setStories(data)
+    } catch (error) {
+      console.error('Error loading stories:', error)
+    }
+  }
+
+  async function loadReels() {
+    try {
+      const { data } = await supabase
+        .from('reels')
+        .select('*')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false })
+        .limit(10)
+      if (data) setReels(data)
+    } catch (error) {
+      console.error('Error loading reels:', error)
+    }
+  }
+
+  async function loadFriends() {
+    try {
+      const { data } = await supabase
+        .from('friends')
+        .select('friend_id')
+        .eq('user_id', userId)
+        .limit(12)
+      if (data) {
+        const friendIds = data.map(f => f.friend_id)
+        const { data: friendProfiles } = await supabase
+          .from('profiles')
+          .select('id, username, display_name, avatar_url')
+          .in('id', friendIds)
+        if (friendProfiles) setFriends(friendProfiles)
+      }
+    } catch (error) {
+      console.error('Error loading friends:', error)
+    }
+  }
+
+  async function checkFollowStatus() {
+    if (isOwnProfile) return
+    try {
+      const { data } = await supabase
         .from('follows')
         .select('id')
         .eq('follower_id', session.user.id)
         .eq('following_id', userId)
         .single()
-      
-      setIsFollowing(!!followData)
-    }
-    
-    setLoading(false)
-  }
-
-  async function loadUserContent() {
-    // Load user's posts
-    const { data: posts } = await supabase
-      .from('posts')
-      .select('*')
-      .eq('user_id', userId)
-      .order('created_at', { ascending: false })
-      .limit(10)
-    
-    if (posts) setUserPosts(posts)
-    
-    // Load user's photos
-    const { data: photos } = await supabase
-      .from('posts')
-      .select('id, image_urls, created_at')
-      .eq('user_id', userId)
-      .not('image_urls', 'is', null)
-      .limit(12)
-    
-    if (photos) setUserPhotos(photos)
-    
-    // Load user's videos
-    const { data: videos } = await supabase
-      .from('videos')
-      .select('*')
-      .eq('user_id', userId)
-      .order('created_at', { ascending: false })
-      .limit(6)
-    
-    if (videos) setUserVideos(videos)
-  }
-
-  async function loadUserFriends() {
-    // Get users that this user follows
-    const { data: following } = await supabase
-      .from('follows')
-      .select('following_id')
-      .eq('follower_id', userId)
-      .limit(6)
-    
-    if (following && following.length > 0) {
-      const friendIds = following.map(f => f.following_id)
-      const { data: friends } = await supabase
-        .from('profiles')
-        .select('id, username, display_name, avatar_url, is_verified')
-        .in('id', friendIds)
-      
-      if (friends) setUserFriends(friends)
+      setIsFollowing(!!data)
+    } catch (error) {
+      console.error('Error checking follow status:', error)
     }
   }
 
-  async function handleFollow() {
-    if (isFollowing) {
+  async function checkFriendStatus() {
+    if (isOwnProfile) return
+    try {
+      const { data } = await supabase
+        .from('friends')
+        .select('id')
+        .or(`user_id.eq.${session.user.id},friend_id.eq.${session.user.id}`)
+        .or(`user_id.eq.${userId},friend_id.eq.${userId}`)
+        .single()
+      setIsFriend(!!data)
+    } catch (error) {
+      console.error('Error checking friend status:', error)
+    }
+  }
+
+  async function followUser() {
+    try {
+      await supabase
+        .from('follows')
+        .insert({ follower_id: session.user.id, following_id: userId })
+      setIsFollowing(true)
+    } catch (error) {
+      console.error('Error following user:', error)
+    }
+  }
+
+  async function unfollowUser() {
+    try {
       await supabase
         .from('follows')
         .delete()
         .eq('follower_id', session.user.id)
         .eq('following_id', userId)
       setIsFollowing(false)
-      setStats(prev => ({ ...prev, followers: prev.followers - 1 }))
-    } else {
+    } catch (error) {
+      console.error('Error unfollowing user:', error)
+    }
+  }
+
+  async function addFriend() {
+    try {
       await supabase
-        .from('follows')
-        .insert({ follower_id: session.user.id, following_id: userId })
-      setIsFollowing(true)
-      setStats(prev => ({ ...prev, followers: prev.followers + 1 }))
+        .from('friends')
+        .insert({ user_id: session.user.id, friend_id: userId })
+      setIsFriend(true)
+    } catch (error) {
+      console.error('Error adding friend:', error)
     }
   }
 
-  async function uploadCoverPhoto(event) {
-    const file = event.target.files[0]
-    if (!file) return
-    
-    const fileExt = file.name.split('.').pop()
-    const fileName = `${session.user.id}_${Date.now()}.${fileExt}`
-    const filePath = `${session.user.id}/${fileName}`
-    
-    const { error } = await supabase.storage
-      .from('covers')
-      .upload(filePath, file)
-    
-    if (error) {
-      alert('Error uploading cover: ' + error.message)
-      return
+  async function removeFriend() {
+    try {
+      await supabase
+        .from('friends')
+        .delete()
+        .or(`user_id.eq.${session.user.id},friend_id.eq.${session.user.id}`)
+        .or(`user_id.eq.${userId},friend_id.eq.${userId}`)
+      setIsFriend(false)
+    } catch (error) {
+      console.error('Error removing friend:', error)
     }
-    
-    const { data: { publicUrl } } = supabase.storage
-      .from('covers')
-      .getPublicUrl(filePath)
-    
-    await supabase
-      .from('profiles')
-      .update({ cover_photo_url: publicUrl })
-      .eq('id', session.user.id)
-    
-    setProfile(prev => ({ ...prev, cover_photo_url: publicUrl }))
-    alert('Cover photo updated!')
   }
 
-  async function uploadAvatar(event) {
-    const file = event.target.files[0]
-    if (!file) return
-    
-    const fileExt = file.name.split('.').pop()
-    const fileName = `${session.user.id}_${Date.now()}.${fileExt}`
-    const filePath = `${session.user.id}/${fileName}`
-    
-    const { error } = await supabase.storage
-      .from('avatars')
-      .upload(filePath, file)
-    
-    if (error) {
-      alert('Error uploading avatar: ' + error.message)
-      return
+  const styles = {
+    container: {
+      padding: '20px',
+      maxWidth: '800px',
+      margin: '0 auto'
+    },
+    profileCard: {
+      background: 'white',
+      borderRadius: '16px',
+      overflow: 'hidden',
+      boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
+      border: '1px solid #e5e7eb'
+    },
+    coverPhoto: {
+      height: '200px',
+      background: 'linear-gradient(135deg, #7c3aed, #ec4899)',
+      position: 'relative'
+    },
+    profileInfo: {
+      padding: '0 20px 20px',
+      position: 'relative',
+      marginTop: '-60px'
+    },
+    avatar: {
+      width: '120px',
+      height: '120px',
+      borderRadius: '50%',
+      border: '4px solid white',
+      background: '#666',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      color: 'white',
+      fontWeight: '700',
+      fontSize: '48px',
+      overflow: 'hidden'
+    },
+    nameRow: {
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      flexWrap: 'wrap',
+      marginTop: '12px',
+      gap: '12px'
+    },
+    name: {
+      fontSize: '28px',
+      fontWeight: '700'
+    },
+    verifiedBadge: {
+      color: '#1da1f2',
+      marginLeft: '8px'
+    },
+    username: {
+      fontSize: '16px',
+      color: '#6b7280',
+      fontWeight: '700'
+    },
+    bio: {
+      fontSize: '15px',
+      fontWeight: '700',
+      marginTop: '8px',
+      color: '#1f2937'
+    },
+    stats: {
+      display: 'flex',
+      gap: '24px',
+      marginTop: '16px'
+    },
+    stat: {
+      textAlign: 'center',
+      cursor: 'pointer'
+    },
+    statNumber: {
+      fontSize: '20px',
+      fontWeight: '700'
+    },
+    statLabel: {
+      fontSize: '13px',
+      color: '#6b7280',
+      fontWeight: '700'
+    },
+    actionButtons: {
+      display: 'flex',
+      gap: '8px',
+      marginTop: '16px',
+      flexWrap: 'wrap'
+    },
+    followBtn: {
+      padding: '8px 24px',
+      background: '#000',
+      color: 'white',
+      border: 'none',
+      borderRadius: '20px',
+      cursor: 'pointer',
+      fontWeight: '700'
+    },
+    unfollowBtn: {
+      padding: '8px 24px',
+      background: '#ef4444',
+      color: 'white',
+      border: 'none',
+      borderRadius: '20px',
+      cursor: 'pointer',
+      fontWeight: '700'
+    },
+    friendBtn: {
+      padding: '8px 24px',
+      background: '#10b981',
+      color: 'white',
+      border: 'none',
+      borderRadius: '20px',
+      cursor: 'pointer',
+      fontWeight: '700'
+    },
+    unfriendBtn: {
+      padding: '8px 24px',
+      background: '#ef4444',
+      color: 'white',
+      border: 'none',
+      borderRadius: '20px',
+      cursor: 'pointer',
+      fontWeight: '700'
+    },
+    tabs: {
+      display: 'flex',
+      gap: '4px',
+      padding: '0 20px',
+      borderBottom: '2px solid #e5e7eb',
+      marginTop: '16px'
+    },
+    tab: {
+      padding: '12px 20px',
+      fontWeight: '700',
+      color: '#6b7280',
+      cursor: 'pointer',
+      position: 'relative',
+      transition: 'all 0.2s'
+    },
+    tabActive: {
+      color: '#000'
+    },
+    tabActiveIndicator: {
+      position: 'absolute',
+      bottom: '-2px',
+      left: 0,
+      right: 0,
+      height: '2px',
+      background: '#000'
+    },
+    content: {
+      padding: '20px'
+    },
+    storyRow: {
+      display: 'flex',
+      gap: '12px',
+      padding: '16px 20px',
+      overflowX: 'auto',
+      borderBottom: '1px solid #e5e7eb'
+    },
+    storyItem: {
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      gap: '4px',
+      cursor: 'pointer'
+    },
+    storyCircle: {
+      width: '64px',
+      height: '64px',
+      borderRadius: '50%',
+      border: '3px solid #7c3aed',
+      padding: '3px',
+      background: '#666',
+      overflow: 'hidden'
+    },
+    storyImage: {
+      width: '100%',
+      height: '100%',
+      borderRadius: '50%',
+      objectFit: 'cover'
+    },
+    storyName: {
+      fontSize: '11px',
+      fontWeight: '700',
+      color: '#6b7280'
+    },
+    reelGrid: {
+      display: 'grid',
+      gridTemplateColumns: 'repeat(3, 1fr)',
+      gap: '4px'
+    },
+    reelItem: {
+      aspectRatio: '1',
+      background: '#666',
+      cursor: 'pointer',
+      position: 'relative',
+      overflow: 'hidden'
+    },
+    reelImage: {
+      width: '100%',
+      height: '100%',
+      objectFit: 'cover'
+    },
+    reelOverlay: {
+      position: 'absolute',
+      bottom: '8px',
+      right: '8px',
+      color: 'white',
+      fontSize: '12px',
+      fontWeight: '700'
+    },
+    postCard: {
+      padding: '16px',
+      borderBottom: '1px solid #e5e7eb'
+    },
+    postContent: {
+      fontSize: '15px',
+      fontWeight: '700'
+    },
+    postTime: {
+      fontSize: '12px',
+      color: '#6b7280',
+      fontWeight: '700',
+      marginTop: '4px'
+    },
+    friendGrid: {
+      display: 'grid',
+      gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))',
+      gap: '16px'
+    },
+    friendCard: {
+      textAlign: 'center',
+      padding: '12px',
+      background: '#f9fafb',
+      borderRadius: '12px',
+      cursor: 'pointer',
+      transition: 'all 0.2s'
+    },
+    friendAvatar: {
+      width: '64px',
+      height: '64px',
+      borderRadius: '50%',
+      background: '#7c3aed',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      color: 'white',
+      fontWeight: '700',
+      fontSize: '24px',
+      margin: '0 auto 8px',
+      overflow: 'hidden'
+    },
+    friendName: {
+      fontSize: '14px',
+      fontWeight: '700'
     }
-    
-    const { data: { publicUrl } } = supabase.storage
-      .from('avatars')
-      .getPublicUrl(filePath)
-    
-    await supabase
-      .from('profiles')
-      .update({ avatar_url: publicUrl })
-      .eq('id', session.user.id)
-    
-    setProfile(prev => ({ ...prev, avatar_url: publicUrl }))
-    alert('Avatar updated!')
   }
 
-  async function sendMessage() {
-    navigate(`/messages?user=${userId}`)
-  }
-
-  async function shareProfile() {
-    const shareUrl = `${window.location.origin}/profile/${userId}`
-    navigator.clipboard.writeText(shareUrl)
-    alert('Profile link copied to clipboard!')
-  }
-
-  function formatTimeAgo(date) {
-    if (!date) return 'just now'
-    const seconds = Math.floor((new Date() - new Date(date)) / 1000)
-    if (seconds < 60) return 'just now'
-    const minutes = Math.floor(seconds / 60)
-    if (minutes < 60) return `${minutes}m ago`
-    const hours = Math.floor(minutes / 60)
-    if (hours < 24) return `${hours}h ago`
-    const days = Math.floor(hours / 24)
-    if (days < 7) return `${days}d ago`
-    return new Date(date).toLocaleDateString()
-  }
-
-  if (loading) {
-    return <div className="spinner"></div>
-  }
-
-  if (!profile) {
-    return (
-      <div className="container">
-        <div className="card" style={{ textAlign: 'center' }}>
-          <p style={{ color: '#888' }}>User not found</p>
-          <button className="btn btn-primary" style={{ marginTop: '16px' }} onClick={() => navigate('/')}>
-            Go Home
-          </button>
-        </div>
-      </div>
-    )
+  if (loading || !profile) {
+    return <div className="spinner" style={{ marginTop: '40px' }}></div>
   }
 
   return (
-    <div className="container">
-      {/* Cover Photo */}
-      <div className="profile-header">
-        {profile.cover_photo_url ? (
-          <img src={profile.cover_photo_url} className="cover-photo" alt="cover" />
-        ) : (
-          <div className="cover-photo" style={{ background: 'linear-gradient(135deg, #667, #889)' }}></div>
-        )}
-        {isOwnProfile && (
-          <div className="cover-actions">
-            <label className="cover-btn" style={{ cursor: 'pointer' }}>
-              <i className="fas fa-camera"></i> Edit Cover
-              <input type="file" accept="image/*" onChange={uploadCoverPhoto} style={{ display: 'none' }} />
-            </label>
-          </div>
-        )}
-        
+    <div style={styles.container}>
+      <div style={styles.profileCard}>
+        {/* Cover Photo */}
+        <div style={styles.coverPhoto}></div>
+
         {/* Profile Info */}
-        <div className="profile-info-row">
-          <div style={{ position: 'relative' }}>
-            <div className="profile-avatar-large">
-              <img 
-                src={profile.avatar_url || `https://ui-avatars.com/api/?name=${(profile.username || 'U')[0]}&background=000&color=fff&size=120`} 
-                alt="avatar" 
-                style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }}
-              />
-            </div>
-            {isOwnProfile && (
-              <label style={{ position: 'absolute', bottom: '5px', right: '5px', background: '#000', borderRadius: '50%', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', border: '2px solid white' }}>
-                <i className="fas fa-camera" style={{ fontSize: '14px', color: 'white' }}></i>
-                <input type="file" accept="image/*" onChange={uploadAvatar} style={{ display: 'none' }} />
-              </label>
-            )}
+        <div style={styles.profileInfo}>
+          <div style={styles.avatar}>
+            <img src={profile.avatar_url || `https://ui-avatars.com/api/?name=${(profile.username?.[0] || 'U')}&background=000&color=fff`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" />
           </div>
-          
-          <div className="profile-details">
-            <div className="profile-name-large">
-              {profile.display_name || profile.username}
-              {profile.is_verified && <span className="verified-badge" style={{ background: '#000', color: 'white' }}>✓ VERIFIED</span>}
-            </div>
-            <div className="profile-username">@{profile.username}</div>
-            
-            <div className="profile-stats-row">
-              <div className="profile-stat" onClick={() => setActiveTab('posts')}>
-                <div className="stat-number">{stats.posts}</div>
-                <div className="stat-label">posts</div>
-              </div>
-              <div className="profile-stat" onClick={() => navigate(`/profile/${userId}/followers`)}>
-                <div className="stat-number">{stats.followers}</div>
-                <div className="stat-label">followers</div>
-              </div>
-              <div className="profile-stat" onClick={() => navigate(`/profile/${userId}/following`)}>
-                <div className="stat-number">{stats.following}</div>
-                <div className="stat-label">following</div>
-              </div>
-            </div>
-            
-            {profile.bio && <div className="profile-bio">{profile.bio}</div>}
-            {profile.location && (
-              <div className="profile-location">
-                <i className="fas fa-map-marker-alt"></i> {profile.location}
-              </div>
-            )}
-            {profile.website && (
-              <div className="profile-website">
-                <i className="fas fa-link"></i> 
-                <a href={profile.website} target="_blank" rel="noopener noreferrer" style={{ color: '#000', textDecoration: 'none' }}>
-                  {profile.website.replace('https://', '')}
-                </a>
-              </div>
-            )}
-            
-            <div className="profile-social-links">
-              {profile.instagram && (
-                <div className="social-icon" onClick={() => window.open(`https://instagram.com/${profile.instagram}`, '_blank')}>
-                  <i className="fab fa-instagram"></i>
-                </div>
-              )}
-              {profile.twitter && (
-                <div className="social-icon" onClick={() => window.open(`https://twitter.com/${profile.twitter}`, '_blank')}>
-                  <i className="fab fa-twitter"></i>
-                </div>
-              )}
-              {profile.youtube && (
-                <div className="social-icon" onClick={() => window.open(`https://youtube.com/@${profile.youtube}`, '_blank')}>
-                  <i className="fab fa-youtube"></i>
-                </div>
-              )}
-              {profile.spotify && (
-                <div className="social-icon" onClick={() => window.open(`https://open.spotify.com/artist/${profile.spotify}`, '_blank')}>
-                  <i className="fab fa-spotify"></i>
-                </div>
-              )}
-            </div>
-            
-            <div className="profile-action-buttons">
-              {!isOwnProfile && session && (
-                <>
-                  <button className="primary-btn" onClick={handleFollow}>
-                    {isFollowing ? <i className="fas fa-check"></i> : <i className="fas fa-user-plus"></i>} 
-                    {isFollowing ? ' Following' : ' Follow'}
-                  </button>
-                  <button className="secondary-btn" onClick={sendMessage}>
-                    <i className="fas fa-envelope"></i> Message
-                  </button>
-                  <button className="secondary-btn" onClick={shareProfile}>
-                    <i className="fas fa-share"></i> Share
-                  </button>
-                </>
-              )}
-              {isOwnProfile && (
-                <>
-                  <button className="primary-btn" onClick={() => navigate('/settings')}>
-                    <i className="fas fa-edit"></i> Edit Profile
-                  </button>
-                  <button className="secondary-btn" onClick={() => navigate('/settings')}>
-                    <i className="fas fa-cog"></i> Settings
-                  </button>
-                </>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
-      
-      {/* Profile Tabs */}
-      <div className="profile-tabs">
-        <div className={`profile-tab ${activeTab === 'posts' ? 'active' : ''}`} onClick={() => setActiveTab('posts')}>
-          Posts <span className="badge-small">{stats.posts}</span>
-        </div>
-        <div className={`profile-tab ${activeTab === 'about' ? 'active' : ''}`} onClick={() => setActiveTab('about')}>
-          About
-        </div>
-        <div className={`profile-tab ${activeTab === 'friends' ? 'active' : ''}`} onClick={() => setActiveTab('friends')}>
-          Friends <span className="badge-small">{userFriends.length}</span>
-        </div>
-        <div className={`profile-tab ${activeTab === 'photos' ? 'active' : ''}`} onClick={() => setActiveTab('photos')}>
-          Photos <span className="badge-small">{stats.photos}</span>
-        </div>
-        <div className={`profile-tab ${activeTab === 'videos' ? 'active' : ''}`} onClick={() => setActiveTab('videos')}>
-          Videos <span className="badge-small">{stats.videos}</span>
-        </div>
-      </div>
-      
-      {/* Posts Tab */}
-      {activeTab === 'posts' && (
-        <div className="profile-content-section active">
-          {userPosts.length === 0 ? (
-            <div className="post-card" style={{ textAlign: 'center' }}>
-              <p style={{ color: '#888' }}>No posts yet.</p>
-            </div>
-          ) : (
-            userPosts.map(post => (
-              <div key={post.id} className="post-card">
-                <div className="post-content">{post.content}</div>
-                {post.image_urls?.[0] && (
-                  <img src={post.image_urls[0]} style={{ width: '100%', borderRadius: '12px', marginTop: '12px' }} alt="post" />
-                )}
-                <div className="post-stats">
-                  <span><i className="fas fa-heart"></i> {post.applause_count || 0} likes</span>
-                  <span><i className="fas fa-comment"></i> {post.comment_count || 0} comments</span>
-                </div>
-              </div>
-            ))
-          )}
-        </div>
-      )}
-      
-      {/* About Tab */}
-      {activeTab === 'about' && (
-        <div className="profile-content-section active">
-          <div className="about-grid">
+          <div style={styles.nameRow}>
             <div>
-              <div className="about-item">
-                <div className="about-label">Location</div>
-                <div className="about-value">{profile.location || 'Not specified'}</div>
+              <div style={styles.name}>
+                {profile.display_name || profile.username}
+                {profile.is_verified && <span style={styles.verifiedBadge}>✓</span>}
               </div>
-              <div className="about-item">
-                <div className="about-label">Joined</div>
-                <div className="about-value">{new Date(profile.created_at).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</div>
-              </div>
-              <div className="about-item">
-                <div className="about-label">Birthday</div>
-                <div className="about-value">{profile.birthday || 'Not specified'}</div>
-              </div>
+              <div style={styles.username}>@{profile.username}</div>
             </div>
             <div>
-              <div className="about-item">
-                <div className="about-label">Role</div>
-                <div className="about-value">{profile.role || 'User'}</div>
-              </div>
-              <div className="about-item">
-                <div className="about-label">Verified</div>
-                <div className="about-value">{profile.is_verified ? '✅ Yes' : 'No'}</div>
-              </div>
-              <div className="about-item">
-                <div className="about-label">Email</div>
-                <div className="about-value">{isOwnProfile ? profile.email || 'Not set' : 'Hidden'}</div>
-              </div>
+              {!isOwnProfile && (
+                <div style={styles.actionButtons}>
+                  {isFollowing ? (
+                    <button style={styles.unfollowBtn} onClick={unfollowUser}>Unfollow</button>
+                  ) : (
+                    <button style={styles.followBtn} onClick={followUser}>Follow</button>
+                  )}
+                  {isFriend ? (
+                    <button style={styles.unfriendBtn} onClick={removeFriend}>Unfriend</button>
+                  ) : (
+                    <button style={styles.friendBtn} onClick={addFriend}>Add Friend</button>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+          {profile.bio && <div style={styles.bio}>{profile.bio}</div>}
+          <div style={styles.stats}>
+            <div style={styles.stat}>
+              <div style={styles.statNumber}>{profile.followers_count || 0}</div>
+              <div style={styles.statLabel}>Followers</div>
+            </div>
+            <div style={styles.stat}>
+              <div style={styles.statNumber}>{profile.following_count || 0}</div>
+              <div style={styles.statLabel}>Following</div>
+            </div>
+            <div style={styles.stat}>
+              <div style={styles.statNumber}>{friends.length}</div>
+              <div style={styles.statLabel}>Friends</div>
             </div>
           </div>
         </div>
-      )}
-      
-      {/* Friends Tab */}
-      {activeTab === 'friends' && (
-        <div className="profile-content-section active">
-          {userFriends.length === 0 ? (
-            <div className="post-card" style={{ textAlign: 'center' }}>
-              <p style={{ color: '#888' }}>No friends to show.</p>
-            </div>
-          ) : (
-            <div className="friends-grid">
-              {userFriends.map(friend => (
-                <div key={friend.id} className="friend-card" onClick={() => navigate(`/profile/${friend.id}`)}>
-                  <div className="friend-avatar">
-                    <img src={friend.avatar_url || `https://ui-avatars.com/api/?name=${(friend.username?.[0] || 'U')}&background=000&color=fff`} alt="" style={{ width: '100%', height: '100%', borderRadius: '50%' }} />
-                  </div>
-                  <div className="friend-name">{friend.display_name || friend.username}</div>
-                  <div className="friend-mutual">{friend.is_verified && <span style={{ color: '#1da1f2' }}>✓ Verified</span>}</div>
-                  <div className="friend-actions">
-                    <button className="friend-action-btn message">Message</button>
-                  </div>
+
+        {/* Stories */}
+        {stories.length > 0 && (
+          <div style={styles.storyRow}>
+            {stories.map(story => (
+              <div key={story.id} style={styles.storyItem} onClick={() => navigate(`/stories/${userId}`)}>
+                <div style={styles.storyCircle}>
+                  <img src={story.thumbnail || profile.avatar_url || `https://ui-avatars.com/api/?name=${(profile.username?.[0] || 'U')}&background=000&color=fff`} style={styles.storyImage} alt="" />
                 </div>
-              ))}
+                <div style={styles.storyName}>Story</div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Tabs */}
+        <div style={styles.tabs}>
+          <div 
+            style={{...styles.tab, ...(activeTab === 'posts' ? styles.tabActive : {})}}
+            onClick={() => setActiveTab('posts')}
+          >
+            Posts
+            {activeTab === 'posts' && <div style={styles.tabActiveIndicator}></div>}
+          </div>
+          <div 
+            style={{...styles.tab, ...(activeTab === 'reels' ? styles.tabActive : {})}}
+            onClick={() => setActiveTab('reels')}
+          >
+            Reels
+            {activeTab === 'reels' && <div style={styles.tabActiveIndicator}></div>}
+          </div>
+          <div 
+            style={{...styles.tab, ...(activeTab === 'friends' ? styles.tabActive : {})}}
+            onClick={() => setActiveTab('friends')}
+          >
+            Friends
+            {activeTab === 'friends' && <div style={styles.tabActiveIndicator}></div>}
+          </div>
+        </div>
+
+        {/* Content */}
+        <div style={styles.content}>
+          {activeTab === 'posts' && (
+            <div>
+              {posts.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '40px', color: '#6b7280', fontWeight: '700' }}>
+                  No posts yet
+                </div>
+              ) : (
+                posts.map(post => (
+                  <div key={post.id} style={styles.postCard}>
+                    <div style={styles.postContent}>{post.content}</div>
+                    <div style={styles.postTime}>{new Date(post.created_at).toLocaleDateString()}</div>
+                  </div>
+                ))
+              )}
+            </div>
+          )}
+
+          {activeTab === 'reels' && (
+            <div>
+              {reels.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '40px', color: '#6b7280', fontWeight: '700' }}>
+                  No reels yet
+                </div>
+              ) : (
+                <div style={styles.reelGrid}>
+                  {reels.map(reel => (
+                    <div key={reel.id} style={styles.reelItem} onClick={() => navigate(`/reels/${userId}`)}>
+                      <img src={reel.thumbnail || 'https://picsum.photos/400/400?random=1'} style={styles.reelImage} alt="" />
+                      <div style={styles.reelOverlay}>▶️ {reel.views || 0}</div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {activeTab === 'friends' && (
+            <div>
+              {friends.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '40px', color: '#6b7280', fontWeight: '700' }}>
+                  No friends yet
+                </div>
+              ) : (
+                <div style={styles.friendGrid}>
+                  {friends.map(friend => (
+                    <div key={friend.id} style={styles.friendCard} onClick={() => navigate(`/profile/${friend.id}`)}>
+                      <div style={styles.friendAvatar}>
+                        <img src={friend.avatar_url || `https://ui-avatars.com/api/?name=${(friend.username?.[0] || 'U')}&background=000&color=fff`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" />
+                      </div>
+                      <div style={styles.friendName}>{friend.display_name || friend.username}</div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
         </div>
-      )}
-      
-      {/* Photos Tab */}
-      {activeTab === 'photos' && (
-        <div className="profile-content-section active">
-          {userPhotos.length === 0 ? (
-            <div className="post-card" style={{ textAlign: 'center' }}>
-              <p style={{ color: '#888' }}>No photos yet.</p>
-            </div>
-          ) : (
-            <div className="gallery-section">
-              {userPhotos.map(photo => (
-                <div key={photo.id} className="gallery-item">
-                  <img src={photo.image_urls?.[0]} alt="photo" />
-                  <div className="gallery-overlay">{formatTimeAgo(photo.created_at)}</div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
-      
-      {/* Videos Tab */}
-      {activeTab === 'videos' && (
-        <div className="profile-content-section active">
-          {userVideos.length === 0 ? (
-            <div className="post-card" style={{ textAlign: 'center' }}>
-              <p style={{ color: '#888' }}>No videos yet.</p>
-            </div>
-          ) : (
-            <div className="video-grid">
-              {userVideos.map(video => (
-                <div key={video.id} className="video-card">
-                  <div className="video-thumbnail">
-                    <img src={video.thumbnail_url || 'https://picsum.photos/400/225'} alt="" />
-                    <div className="play-button">▶️</div>
-                  </div>
-                  <div className="video-info">
-                    <div className="video-title">{video.title}</div>
-                    <div className="video-meta">{video.views_count || 0} views</div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
+      </div>
     </div>
   )
 }

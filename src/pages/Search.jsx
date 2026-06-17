@@ -1,4 +1,4 @@
-// src/pages/Search.jsx
+// src/pages/Search.jsx - UPDATED WITH INLINE STYLES
 import React, { useState, useEffect } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
@@ -15,7 +15,6 @@ export default function Search() {
   const [activeFilter, setActiveFilter] = useState('all')
   const [recentSearches, setRecentSearches] = useState([])
 
-  // Get search query from URL params
   useEffect(() => {
     const params = new URLSearchParams(location.search)
     const q = params.get('q')
@@ -25,7 +24,6 @@ export default function Search() {
     }
   }, [location.search])
 
-  // Load recent searches from localStorage
   useEffect(() => {
     const saved = localStorage.getItem('recentSearches')
     if (saved) {
@@ -43,75 +41,70 @@ export default function Search() {
       return
     }
     
-    // Save to recent searches
     const updated = [searchQuery, ...recentSearches.filter(s => s !== searchQuery)].slice(0, 5)
     setRecentSearches(updated)
     localStorage.setItem('recentSearches', JSON.stringify(updated))
     
     setLoading(true)
     
-    // Search users
-    const { data: userData } = await supabase
-      .from('profiles')
-      .select('*')
-      .or(`username.ilike.%${searchQuery}%,display_name.ilike.%${searchQuery}%,bio.ilike.%${searchQuery}%`)
-      .limit(10)
-    
-    if (userData) setUsers(userData)
-    
-    // Search posts
-    const { data: postData } = await supabase
-      .from('posts')
-      .select(`
-        *,
-        profiles:user_id (
-          id,
-          username,
-          display_name,
-          avatar_url,
-          is_verified
-        )
-      `)
-      .ilike('content', `%${searchQuery}%`)
-      .limit(10)
-    
-    if (postData) setPosts(postData)
-    
-    // Search videos
-    const { data: videoData } = await supabase
-      .from('videos')
-      .select(`
-        *,
-        profiles:user_id (
-          id,
-          username,
-          display_name,
-          avatar_url,
-          is_verified
-        )
-      `)
-      .ilike('title', `%${searchQuery}%`)
-      .limit(6)
-    
-    if (videoData) setVideos(videoData)
-    
-    // Search gigs
-    const { data: gigData } = await supabase
-      .from('gigs')
-      .select(`
-        *,
-        profiles:user_id (
-          id,
-          username,
-          display_name,
-          avatar_url
-        )
-      `)
-      .ilike('title', `%${searchQuery}%`)
-      .eq('status', 'open')
-      .limit(6)
-    
-    if (gigData) setGigs(gigData)
+    try {
+      const { data: userData } = await supabase
+        .from('profiles')
+        .select('*')
+        .or(`username.ilike.%${searchQuery}%,display_name.ilike.%${searchQuery}%,bio.ilike.%${searchQuery}%`)
+        .limit(10)
+      if (userData) setUsers(userData)
+      
+      const { data: postData } = await supabase
+        .from('posts')
+        .select(`
+          *,
+          profiles:user_id (
+            id,
+            username,
+            display_name,
+            avatar_url,
+            is_verified
+          )
+        `)
+        .ilike('content', `%${searchQuery}%`)
+        .limit(10)
+      if (postData) setPosts(postData)
+      
+      const { data: videoData } = await supabase
+        .from('videos')
+        .select(`
+          *,
+          profiles:user_id (
+            id,
+            username,
+            display_name,
+            avatar_url,
+            is_verified
+          )
+        `)
+        .ilike('title', `%${searchQuery}%`)
+        .limit(6)
+      if (videoData) setVideos(videoData)
+      
+      const { data: gigData } = await supabase
+        .from('gigs')
+        .select(`
+          *,
+          profiles:user_id (
+            id,
+            username,
+            display_name,
+            avatar_url
+          )
+        `)
+        .ilike('title', `%${searchQuery}%`)
+        .eq('status', 'open')
+        .limit(6)
+      if (gigData) setGigs(gigData)
+    } catch (error) {
+      console.error('Error searching:', error)
+    }
     
     setLoading(false)
   }
@@ -155,27 +148,374 @@ export default function Search() {
   const hasResults = (activeFilter === 'all' && (users.length > 0 || posts.length > 0 || videos.length > 0 || gigs.length > 0)) ||
                      (activeFilter !== 'all' && results.length > 0)
 
+  const styles = {
+    container: {
+      maxWidth: '800px',
+      margin: '30px auto 0',
+      padding: '0 20px'
+    },
+    title: {
+      fontSize: '1.8rem',
+      fontWeight: '700',
+      marginBottom: '8px'
+    },
+    subtitle: {
+      color: '#6b7280',
+      marginBottom: '20px'
+    },
+    searchCard: {
+      background: 'white',
+      borderRadius: '16px',
+      padding: '16px',
+      marginBottom: '24px',
+      boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
+      border: '1px solid #e5e7eb'
+    },
+    searchRow: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: '12px'
+    },
+    searchIcon: {
+      color: '#6b7280',
+      fontSize: '18px'
+    },
+    searchInput: {
+      flex: 1,
+      border: 'none',
+      padding: '12px 0',
+      background: 'transparent',
+      fontSize: '16px',
+      fontWeight: '700',
+      outline: 'none'
+    },
+    clearBtn: {
+      background: 'none',
+      border: 'none',
+      cursor: 'pointer',
+      color: '#6b7280',
+      fontSize: '16px'
+    },
+    recentCard: {
+      background: 'white',
+      borderRadius: '16px',
+      padding: '16px',
+      marginBottom: '24px',
+      boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
+      border: '1px solid #e5e7eb'
+    },
+    recentHeader: {
+      display: 'flex',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: '12px'
+    },
+    recentTitle: {
+      fontSize: '14px',
+      color: '#6b7280',
+      fontWeight: '700'
+    },
+    clearAllBtn: {
+      background: 'none',
+      border: 'none',
+      color: '#ef4444',
+      cursor: 'pointer',
+      fontSize: '12px',
+      fontWeight: '700'
+    },
+    recentItem: {
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      padding: '8px 0',
+      cursor: 'pointer',
+      transition: 'all 0.2s'
+    },
+    recentItemLeft: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: '12px'
+    },
+    recentItemIcon: {
+      color: '#6b7280'
+    },
+    recentItemText: {
+      fontWeight: '700'
+    },
+    removeRecentBtn: {
+      background: 'none',
+      border: 'none',
+      cursor: 'pointer',
+      color: '#999',
+      fontSize: '14px'
+    },
+    trendingCard: {
+      background: 'white',
+      borderRadius: '16px',
+      padding: '16px',
+      boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
+      border: '1px solid #e5e7eb'
+    },
+    trendingTitle: {
+      fontSize: '14px',
+      color: '#6b7280',
+      marginBottom: '12px',
+      fontWeight: '700'
+    },
+    trendingTags: {
+      display: 'flex',
+      gap: '12px',
+      flexWrap: 'wrap'
+    },
+    trendingTag: {
+      background: '#f0f2f5',
+      padding: '6px 14px',
+      borderRadius: '20px',
+      fontSize: '13px',
+      cursor: 'pointer',
+      fontWeight: '700',
+      transition: 'all 0.2s'
+    },
+    tabs: {
+      display: 'flex',
+      gap: '4px',
+      marginBottom: '20px',
+      borderBottom: '1px solid #ddd',
+      paddingBottom: '0'
+    },
+    tab: {
+      padding: '10px 20px',
+      fontWeight: '700',
+      color: '#6b7280',
+      cursor: 'pointer',
+      position: 'relative',
+      transition: 'all 0.2s',
+      fontSize: '14px'
+    },
+    tabActive: {
+      color: '#000'
+    },
+    tabIndicator: {
+      position: 'absolute',
+      bottom: '-1px',
+      left: 0,
+      right: 0,
+      height: '2px',
+      background: '#7c3aed'
+    },
+    card: {
+      background: 'white',
+      borderRadius: '16px',
+      padding: '16px',
+      marginBottom: '12px',
+      boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
+      border: '1px solid #e5e7eb',
+      cursor: 'pointer',
+      transition: 'all 0.2s'
+    },
+    emptyState: {
+      textAlign: 'center',
+      padding: '40px'
+    },
+    emptyIcon: {
+      fontSize: '48px',
+      color: '#ccc',
+      marginBottom: '16px'
+    },
+    sectionHeader: {
+      display: 'flex',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: '16px'
+    },
+    sectionTitle: {
+      fontSize: '1.2rem',
+      fontWeight: '600'
+    },
+    seeAll: {
+      color: '#000',
+      cursor: 'pointer',
+      fontSize: '14px',
+      fontWeight: '700'
+    },
+    userCard: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: '12px'
+    },
+    userAvatar: {
+      width: '56px',
+      height: '56px',
+      borderRadius: '50%',
+      objectFit: 'cover'
+    },
+    userName: {
+      fontWeight: '700',
+      fontSize: '16px'
+    },
+    userVerified: {
+      color: '#1da1f2',
+      marginLeft: '4px'
+    },
+    userUsername: {
+      color: '#6b7280',
+      fontSize: '0.85rem',
+      fontWeight: '700'
+    },
+    userBio: {
+      fontSize: '0.85rem',
+      marginTop: '4px',
+      color: '#4b5563'
+    },
+    followBtn: {
+      marginLeft: 'auto',
+      padding: '6px 16px',
+      background: '#000',
+      color: 'white',
+      border: 'none',
+      borderRadius: '20px',
+      cursor: 'pointer',
+      fontWeight: '700',
+      fontSize: '12px',
+      transition: 'all 0.2s'
+    },
+    postHeader: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: '12px',
+      marginBottom: '12px'
+    },
+    postAvatar: {
+      width: '40px',
+      height: '40px',
+      borderRadius: '50%',
+      objectFit: 'cover'
+    },
+    postName: {
+      fontWeight: '600'
+    },
+    postTime: {
+      fontSize: '0.7rem',
+      color: '#6b7280',
+      fontWeight: '700'
+    },
+    postContent: {
+      fontWeight: '700'
+    },
+    postStats: {
+      marginTop: '12px',
+      display: 'flex',
+      gap: '16px',
+      color: '#6b7280',
+      fontSize: '0.8rem',
+      fontWeight: '700'
+    },
+    videoGrid: {
+      display: 'grid',
+      gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))',
+      gap: '16px'
+    },
+    videoCard: {
+      background: '#f0f2f5',
+      borderRadius: '12px',
+      overflow: 'hidden',
+      cursor: 'pointer',
+      border: '1px solid #e5e7eb',
+      transition: 'all 0.2s'
+    },
+    videoThumbnail: {
+      height: '120px',
+      background: '#ddd',
+      position: 'relative',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center'
+    },
+    videoThumbnailImg: {
+      width: '100%',
+      height: '100%',
+      objectFit: 'cover'
+    },
+    playOverlay: {
+      position: 'absolute',
+      fontSize: '32px'
+    },
+    videoInfo: {
+      padding: '12px'
+    },
+    videoTitle: {
+      fontWeight: '700',
+      fontSize: '13px',
+      marginBottom: '4px'
+    },
+    videoMeta: {
+      color: '#6b7280',
+      fontSize: '11px',
+      fontWeight: '700'
+    },
+    gigGrid: {
+      display: 'grid',
+      gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
+      gap: '16px'
+    },
+    gigCard: {
+      background: 'white',
+      borderRadius: '16px',
+      padding: '16px',
+      border: '1px solid #e5e7eb',
+      boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
+      cursor: 'pointer',
+      transition: 'all 0.2s'
+    },
+    gigTitle: {
+      fontWeight: '700',
+      fontSize: '16px'
+    },
+    gigCreator: {
+      color: '#6b7280',
+      fontSize: '12px',
+      fontWeight: '700'
+    },
+    gigDesc: {
+      fontSize: '13px',
+      marginTop: '8px',
+      fontWeight: '700'
+    },
+    gigPrice: {
+      color: '#000',
+      fontWeight: '700',
+      marginTop: '8px'
+    },
+    spinner: {
+      width: '40px',
+      height: '40px',
+      border: '4px solid rgba(124,58,237,0.2)',
+      borderTop: '4px solid #7c3aed',
+      borderRadius: '50%',
+      animation: 'spin 0.8s linear infinite',
+      margin: '20px auto'
+    }
+  }
+
   return (
-    <div className="container" style={{ marginTop: '30px', maxWidth: '800px' }}>
-      {/* Header */}
-      <h1 style={{ fontSize: '1.8rem', fontWeight: '700', marginBottom: '8px' }}>🔍 Search</h1>
-      <p style={{ color: '#888', marginBottom: '20px' }}>Find users, posts, videos, and gigs</p>
+    <div style={styles.container}>
+      <h1 style={styles.title}>🔍 Search</h1>
+      <p style={styles.subtitle}>Find users, posts, videos, and gigs</p>
       
       {/* Search Input */}
-      <div className="card" style={{ marginBottom: '24px', padding: '16px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <i className="fas fa-search" style={{ color: '#666', fontSize: '18px' }}></i>
+      <div style={styles.searchCard}>
+        <div style={styles.searchRow}>
+          <i className="fas fa-search" style={styles.searchIcon}></i>
           <input
             type="text"
-            className="input"
+            style={styles.searchInput}
             placeholder="Search SocialVibe..."
             value={query}
             onChange={(e) => handleSearch(e.target.value)}
-            style={{ flex: 1, border: 'none', padding: '12px 0', background: 'transparent' }}
             autoFocus
           />
           {query && (
-            <button onClick={clearSearch} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#666' }}>
+            <button onClick={clearSearch} style={styles.clearBtn}>
               <i className="fas fa-times"></i>
             </button>
           )}
@@ -184,20 +524,20 @@ export default function Search() {
       
       {/* Recent Searches */}
       {!query && recentSearches.length > 0 && (
-        <div className="card" style={{ marginBottom: '24px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-            <h3 style={{ fontSize: '14px', color: '#666' }}>Recent Searches</h3>
-            <button onClick={() => { setRecentSearches([]); localStorage.removeItem('recentSearches') }} style={{ background: 'none', border: 'none', color: '#ff4444', cursor: 'pointer', fontSize: '12px' }}>
+        <div style={styles.recentCard}>
+          <div style={styles.recentHeader}>
+            <h3 style={styles.recentTitle}>Recent Searches</h3>
+            <button onClick={() => { setRecentSearches([]); localStorage.removeItem('recentSearches') }} style={styles.clearAllBtn}>
               Clear All
             </button>
           </div>
           {recentSearches.map((item, i) => (
-            <div key={i} className="suggestion-item" onClick={() => handleSearch(item)} style={{ justifyContent: 'space-between' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                <i className="fas fa-history" style={{ color: '#666' }}></i>
-                <span>{item}</span>
+            <div key={i} style={styles.recentItem} onClick={() => handleSearch(item)}>
+              <div style={styles.recentItemLeft}>
+                <i className="fas fa-history" style={styles.recentItemIcon}></i>
+                <span style={styles.recentItemText}>{item}</span>
               </div>
-              <button onClick={(e) => { e.stopPropagation(); removeRecentSearch(item) }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#999' }}>
+              <button onClick={(e) => { e.stopPropagation(); removeRecentSearch(item) }} style={styles.removeRecentBtn}>
                 <i className="fas fa-times"></i>
               </button>
             </div>
@@ -207,11 +547,11 @@ export default function Search() {
       
       {/* Trending Suggestions */}
       {!query && (
-        <div className="card">
-          <h3 style={{ fontSize: '14px', color: '#666', marginBottom: '12px' }}>Trending on SocialVibe</h3>
-          <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+        <div style={styles.trendingCard}>
+          <h3 style={styles.trendingTitle}>Trending on SocialVibe</h3>
+          <div style={styles.trendingTags}>
             {['#NewMusicFriday', '#BeatMaking', '#StudioSession', '#ProducerLife', '#LivePerformance'].map(tag => (
-              <span key={tag} onClick={() => handleSearch(tag)} style={{ background: '#f0f2f5', padding: '6px 14px', borderRadius: '20px', fontSize: '13px', cursor: 'pointer' }}>
+              <span key={tag} style={styles.trendingTag} onClick={() => handleSearch(tag)}>
                 {tag}
               </span>
             ))}
@@ -221,64 +561,85 @@ export default function Search() {
       
       {/* Filter Tabs */}
       {query && !loading && (
-        <div className="tabs" style={{ marginBottom: '20px', borderBottom: '1px solid #ddd' }}>
-          <div className={`tab ${activeFilter === 'all' ? 'active' : ''}`} onClick={() => setActiveFilter('all')}>
+        <div style={styles.tabs}>
+          <div 
+            style={{...styles.tab, ...(activeFilter === 'all' ? styles.tabActive : {})}}
+            onClick={() => setActiveFilter('all')}
+          >
             All ({users.length + posts.length + videos.length + gigs.length})
+            {activeFilter === 'all' && <div style={styles.tabIndicator}></div>}
           </div>
-          <div className={`tab ${activeFilter === 'users' ? 'active' : ''}`} onClick={() => setActiveFilter('users')}>
+          <div 
+            style={{...styles.tab, ...(activeFilter === 'users' ? styles.tabActive : {})}}
+            onClick={() => setActiveFilter('users')}
+          >
             Users ({users.length})
+            {activeFilter === 'users' && <div style={styles.tabIndicator}></div>}
           </div>
-          <div className={`tab ${activeFilter === 'posts' ? 'active' : ''}`} onClick={() => setActiveFilter('posts')}>
+          <div 
+            style={{...styles.tab, ...(activeFilter === 'posts' ? styles.tabActive : {})}}
+            onClick={() => setActiveFilter('posts')}
+          >
             Posts ({posts.length})
+            {activeFilter === 'posts' && <div style={styles.tabIndicator}></div>}
           </div>
-          <div className={`tab ${activeFilter === 'videos' ? 'active' : ''}`} onClick={() => setActiveFilter('videos')}>
+          <div 
+            style={{...styles.tab, ...(activeFilter === 'videos' ? styles.tabActive : {})}}
+            onClick={() => setActiveFilter('videos')}
+          >
             Videos ({videos.length})
+            {activeFilter === 'videos' && <div style={styles.tabIndicator}></div>}
           </div>
-          <div className={`tab ${activeFilter === 'gigs' ? 'active' : ''}`} onClick={() => setActiveFilter('gigs')}>
+          <div 
+            style={{...styles.tab, ...(activeFilter === 'gigs' ? styles.tabActive : {})}}
+            onClick={() => setActiveFilter('gigs')}
+          >
             Gigs ({gigs.length})
+            {activeFilter === 'gigs' && <div style={styles.tabIndicator}></div>}
           </div>
         </div>
       )}
       
       {/* Loading State */}
-      {loading && <div className="spinner"></div>}
+      {loading && <div style={styles.spinner}></div>}
       
       {/* No Results */}
       {query && !loading && !hasResults && (
-        <div className="card" style={{ textAlign: 'center', padding: '40px' }}>
-          <i className="fas fa-search" style={{ fontSize: '48px', color: '#ccc', marginBottom: '16px' }}></i>
-          <p style={{ color: '#888', fontSize: '16px' }}>No results found for "{query}"</p>
-          <p style={{ color: '#999', fontSize: '13px', marginTop: '8px' }}>Try searching for something else</p>
+        <div style={styles.card}>
+          <div style={styles.emptyState}>
+            <i className="fas fa-search" style={styles.emptyIcon}></i>
+            <p style={{ color: '#6b7280', fontSize: '16px' }}>No results found for "{query}"</p>
+            <p style={{ color: '#999', fontSize: '13px', marginTop: '8px' }}>Try searching for something else</p>
+          </div>
         </div>
       )}
       
       {/* Users Results */}
       {activeFilter === 'all' && users.length > 0 && (
         <div style={{ marginBottom: '30px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-            <h2 style={{ fontSize: '1.2rem', fontWeight: '600' }}>Users</h2>
-            <span className="see-all" onClick={() => setActiveFilter('users')}>See all {users.length} →</span>
+          <div style={styles.sectionHeader}>
+            <h2 style={styles.sectionTitle}>Users</h2>
+            <span style={styles.seeAll} onClick={() => setActiveFilter('users')}>See all {users.length} →</span>
           </div>
           {users.slice(0, 3).map(user => (
             <div
               key={user.id}
-              className="card"
-              style={{ cursor: 'pointer', marginBottom: '12px' }}
+              style={styles.card}
               onClick={() => navigate(`/profile/${user.id}`)}
             >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <div style={styles.userCard}>
                 <img
                   src={user.avatar_url || `https://ui-avatars.com/api/?name=${(user.username || 'U')[0]}&background=000&color=fff`}
-                  style={{ width: '56px', height: '56px', borderRadius: '50%', objectFit: 'cover' }}
+                  style={styles.userAvatar}
                   alt="avatar"
                 />
                 <div>
-                  <div style={{ fontWeight: '700', fontSize: '16px' }}>
+                  <div style={styles.userName}>
                     {user.display_name || user.username}
-                    {user.is_verified && <span style={{ color: '#1da1f2', marginLeft: '4px' }}>✓</span>}
+                    {user.is_verified && <span style={styles.userVerified}>✓</span>}
                   </div>
-                  <div style={{ color: '#888', fontSize: '0.85rem' }}>@{user.username}</div>
-                  {user.bio && <div style={{ fontSize: '0.85rem', marginTop: '4px', color: '#555' }}>{user.bio.substring(0, 80)}</div>}
+                  <div style={styles.userUsername}>@{user.username}</div>
+                  {user.bio && <div style={styles.userBio}>{user.bio.substring(0, 80)}</div>}
                 </div>
               </div>
             </div>
@@ -290,25 +651,24 @@ export default function Search() {
       {activeFilter === 'users' && users.map(user => (
         <div
           key={user.id}
-          className="card"
-          style={{ cursor: 'pointer', marginBottom: '12px' }}
+          style={styles.card}
           onClick={() => navigate(`/profile/${user.id}`)}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <div style={styles.userCard}>
             <img
               src={user.avatar_url || `https://ui-avatars.com/api/?name=${(user.username || 'U')[0]}&background=000&color=fff`}
-              style={{ width: '56px', height: '56px', borderRadius: '50%', objectFit: 'cover' }}
+              style={styles.userAvatar}
               alt="avatar"
             />
             <div>
-              <div style={{ fontWeight: '700', fontSize: '16px' }}>
+              <div style={styles.userName}>
                 {user.display_name || user.username}
-                {user.is_verified && <span style={{ color: '#1da1f2', marginLeft: '4px' }}>✓</span>}
+                {user.is_verified && <span style={styles.userVerified}>✓</span>}
               </div>
-              <div style={{ color: '#888', fontSize: '0.85rem' }}>@{user.username}</div>
-              {user.bio && <div style={{ fontSize: '0.85rem', marginTop: '4px', color: '#555' }}>{user.bio.substring(0, 100)}</div>}
+              <div style={styles.userUsername}>@{user.username}</div>
+              {user.bio && <div style={styles.userBio}>{user.bio.substring(0, 100)}</div>}
             </div>
-            <button className="follow-btn" style={{ marginLeft: 'auto' }}>Follow</button>
+            <button style={styles.followBtn}>Follow</button>
           </div>
         </div>
       ))}
@@ -316,28 +676,28 @@ export default function Search() {
       {/* Posts Results */}
       {activeFilter === 'all' && posts.length > 0 && (
         <div style={{ marginBottom: '30px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-            <h2 style={{ fontSize: '1.2rem', fontWeight: '600' }}>Posts</h2>
-            <span className="see-all" onClick={() => setActiveFilter('posts')}>See all {posts.length} →</span>
+          <div style={styles.sectionHeader}>
+            <h2 style={styles.sectionTitle}>Posts</h2>
+            <span style={styles.seeAll} onClick={() => setActiveFilter('posts')}>See all {posts.length} →</span>
           </div>
           {posts.slice(0, 3).map(post => (
-            <div key={post.id} className="card" style={{ cursor: 'pointer', marginBottom: '12px' }} onClick={() => navigate('/')}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
+            <div key={post.id} style={styles.card} onClick={() => navigate('/')}>
+              <div style={styles.postHeader}>
                 <img
                   src={post.profiles?.avatar_url || `https://ui-avatars.com/api/?name=${(post.profiles?.username || 'U')[0]}&background=000&color=fff`}
-                  style={{ width: '40px', height: '40px', borderRadius: '50%', objectFit: 'cover' }}
+                  style={styles.postAvatar}
                   alt="avatar"
                 />
                 <div>
-                  <div style={{ fontWeight: '600' }}>
+                  <div style={styles.postName}>
                     {post.profiles?.display_name || post.profiles?.username}
-                    {post.profiles?.is_verified && <span style={{ color: '#1da1f2', marginLeft: '4px' }}>✓</span>}
+                    {post.profiles?.is_verified && <span style={styles.userVerified}>✓</span>}
                   </div>
-                  <div style={{ fontSize: '0.7rem', color: '#888' }}>{formatTimeAgo(post.created_at)}</div>
+                  <div style={styles.postTime}>{formatTimeAgo(post.created_at)}</div>
                 </div>
               </div>
-              <p>{post.content.substring(0, 150)}{post.content.length > 150 ? '...' : ''}</p>
-              <div style={{ marginTop: '12px', display: 'flex', gap: '16px', color: '#888', fontSize: '0.8rem' }}>
+              <p style={styles.postContent}>{post.content.substring(0, 150)}{post.content.length > 150 ? '...' : ''}</p>
+              <div style={styles.postStats}>
                 <span>👏 {post.applause_count || 0}</span>
                 <span>💬 {post.comment_count || 0}</span>
               </div>
@@ -349,20 +709,20 @@ export default function Search() {
       {/* Videos Results */}
       {activeFilter === 'all' && videos.length > 0 && (
         <div style={{ marginBottom: '30px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-            <h2 style={{ fontSize: '1.2rem', fontWeight: '600' }}>Videos</h2>
-            <span className="see-all" onClick={() => setActiveFilter('videos')}>See all {videos.length} →</span>
+          <div style={styles.sectionHeader}>
+            <h2 style={styles.sectionTitle}>Videos</h2>
+            <span style={styles.seeAll} onClick={() => setActiveFilter('videos')}>See all {videos.length} →</span>
           </div>
-          <div className="video-grid" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))' }}>
+          <div style={styles.videoGrid}>
             {videos.slice(0, 4).map(video => (
-              <div key={video.id} className="video-card" onClick={() => navigate('/music')}>
-                <div className="video-thumbnail">
-                  <img src={video.thumbnail_url || 'https://picsum.photos/400/225'} alt="" />
-                  <div className="play-overlay">▶️</div>
+              <div key={video.id} style={styles.videoCard} onClick={() => navigate('/music')}>
+                <div style={styles.videoThumbnail}>
+                  <img src={video.thumbnail_url || 'https://picsum.photos/400/225'} style={styles.videoThumbnailImg} alt="" />
+                  <div style={styles.playOverlay}>▶️</div>
                 </div>
-                <div className="video-info">
-                  <div className="video-title">{video.title.substring(0, 30)}</div>
-                  <div className="video-meta">{video.views_count || 0} views</div>
+                <div style={styles.videoInfo}>
+                  <div style={styles.videoTitle}>{video.title.substring(0, 30)}</div>
+                  <div style={styles.videoMeta}>{video.views_count || 0} views</div>
                 </div>
               </div>
             ))}
@@ -373,19 +733,19 @@ export default function Search() {
       {/* Gigs Results */}
       {activeFilter === 'all' && gigs.length > 0 && (
         <div style={{ marginBottom: '30px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-            <h2 style={{ fontSize: '1.2rem', fontWeight: '600' }}>Gigs</h2>
-            <span className="see-all" onClick={() => setActiveFilter('gigs')}>See all {gigs.length} →</span>
+          <div style={styles.sectionHeader}>
+            <h2 style={styles.sectionTitle}>Gigs</h2>
+            <span style={styles.seeAll} onClick={() => setActiveFilter('gigs')}>See all {gigs.length} →</span>
           </div>
-          <div className="grid-2">
+          <div style={styles.gigGrid}>
             {gigs.slice(0, 4).map(gig => (
-              <div key={gig.id} className="card" onClick={() => navigate('/gigs')}>
-                <h4>{gig.title}</h4>
-                <p style={{ color: '#888', fontSize: '12px', marginTop: '4px' }}>
+              <div key={gig.id} style={styles.gigCard} onClick={() => navigate('/gigs')}>
+                <h4 style={styles.gigTitle}>{gig.title}</h4>
+                <p style={styles.gigCreator}>
                   by {gig.profiles?.display_name || gig.profiles?.username}
                 </p>
-                <p style={{ fontSize: '13px', marginTop: '8px' }}>{gig.description?.substring(0, 80)}</p>
-                <p style={{ color: '#000', fontWeight: 'bold', marginTop: '8px' }}>
+                <p style={styles.gigDesc}>{gig.description?.substring(0, 80)}</p>
+                <p style={styles.gigPrice}>
                   {gig.is_paid ? `$${gig.price}` : 'Free'}
                 </p>
               </div>
@@ -396,23 +756,23 @@ export default function Search() {
       
       {/* Full Results for other filters */}
       {activeFilter === 'posts' && posts.map(post => (
-        <div key={post.id} className="card" style={{ cursor: 'pointer', marginBottom: '12px' }} onClick={() => navigate('/')}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
+        <div key={post.id} style={styles.card} onClick={() => navigate('/')}>
+          <div style={styles.postHeader}>
             <img
               src={post.profiles?.avatar_url || `https://ui-avatars.com/api/?name=${(post.profiles?.username || 'U')[0]}&background=000&color=fff`}
-              style={{ width: '40px', height: '40px', borderRadius: '50%', objectFit: 'cover' }}
+              style={styles.postAvatar}
               alt="avatar"
             />
             <div>
-              <div style={{ fontWeight: '600' }}>
+              <div style={styles.postName}>
                 {post.profiles?.display_name || post.profiles?.username}
-                {post.profiles?.is_verified && <span style={{ color: '#1da1f2', marginLeft: '4px' }}>✓</span>}
+                {post.profiles?.is_verified && <span style={styles.userVerified}>✓</span>}
               </div>
-              <div style={{ fontSize: '0.7rem', color: '#888' }}>{formatTimeAgo(post.created_at)}</div>
+              <div style={styles.postTime}>{formatTimeAgo(post.created_at)}</div>
             </div>
           </div>
-          <p>{post.content}</p>
-          <div style={{ marginTop: '12px', display: 'flex', gap: '16px', color: '#888', fontSize: '0.8rem' }}>
+          <p style={styles.postContent}>{post.content}</p>
+          <div style={styles.postStats}>
             <span>👏 {post.applause_count || 0}</span>
             <span>💬 {post.comment_count || 0}</span>
           </div>
@@ -420,16 +780,16 @@ export default function Search() {
       ))}
       
       {activeFilter === 'videos' && (
-        <div className="video-grid">
+        <div style={styles.videoGrid}>
           {videos.map(video => (
-            <div key={video.id} className="video-card" onClick={() => navigate('/music')}>
-              <div className="video-thumbnail">
-                <img src={video.thumbnail_url || 'https://picsum.photos/400/225'} alt="" />
-                <div className="play-overlay">▶️</div>
+            <div key={video.id} style={styles.videoCard} onClick={() => navigate('/music')}>
+              <div style={styles.videoThumbnail}>
+                <img src={video.thumbnail_url || 'https://picsum.photos/400/225'} style={styles.videoThumbnailImg} alt="" />
+                <div style={styles.playOverlay}>▶️</div>
               </div>
-              <div className="video-info">
-                <div className="video-title">{video.title}</div>
-                <div className="video-meta">{video.views_count || 0} views</div>
+              <div style={styles.videoInfo}>
+                <div style={styles.videoTitle}>{video.title}</div>
+                <div style={styles.videoMeta}>{video.views_count || 0} views</div>
               </div>
             </div>
           ))}
@@ -437,15 +797,15 @@ export default function Search() {
       )}
       
       {activeFilter === 'gigs' && (
-        <div className="grid-2">
+        <div style={styles.gigGrid}>
           {gigs.map(gig => (
-            <div key={gig.id} className="card" onClick={() => navigate('/gigs')}>
-              <h4>{gig.title}</h4>
-              <p style={{ color: '#888', fontSize: '12px', marginTop: '4px' }}>
+            <div key={gig.id} style={styles.gigCard} onClick={() => navigate('/gigs')}>
+              <h4 style={styles.gigTitle}>{gig.title}</h4>
+              <p style={styles.gigCreator}>
                 by {gig.profiles?.display_name || gig.profiles?.username}
               </p>
-              <p style={{ fontSize: '13px', marginTop: '8px' }}>{gig.description?.substring(0, 100)}</p>
-              <p style={{ color: '#000', fontWeight: 'bold', marginTop: '8px' }}>
+              <p style={styles.gigDesc}>{gig.description?.substring(0, 100)}</p>
+              <p style={styles.gigPrice}>
                 {gig.is_paid ? `$${gig.price}` : 'Free'} • 📍 {gig.is_virtual ? 'Virtual' : gig.location}
               </p>
             </div>

@@ -1,9 +1,10 @@
-// src/components/Layout.jsx - FIXED WITH INLINE STYLES
+// src/components/Layout.jsx - UPDATED WITH TREE BAR MENU
 import React, { useState, useEffect } from 'react'
 import { useLocation } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import LeftSidebar from './LeftSidebar'
 import RightSidebar from './RightSidebar'
+import TreeBarMenu from './TreeBarMenu'
 
 export default function Layout({ children, session }) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
@@ -139,6 +140,64 @@ export default function Layout({ children, session }) {
       padding: '20px',
       minHeight: '400px',
       boxShadow: '0 2px 8px rgba(0,0,0,0.05)'
+    },
+    header: {
+      display: 'flex',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      background: 'white',
+      padding: isMobile ? '12px 16px' : '16px 24px',
+      borderRadius: '12px',
+      marginBottom: '16px',
+      boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
+      position: 'sticky',
+      top: '8px',
+      zIndex: 100,
+      border: '1px solid #e5e7eb'
+    },
+    logo: {
+      fontSize: isMobile ? '20px' : '24px',
+      fontWeight: '800',
+      cursor: 'pointer'
+    },
+    logoGradient: {
+      color: '#7c3aed'
+    },
+    headerRight: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: '12px'
+    },
+    userEmail: {
+      fontSize: isMobile ? '12px' : '14px',
+      color: '#6b7280',
+      fontWeight: '700'
+    },
+    logoutBtn: {
+      padding: isMobile ? '6px 12px' : '8px 16px',
+      background: '#ef4444',
+      color: 'white',
+      border: 'none',
+      borderRadius: '8px',
+      cursor: 'pointer',
+      fontSize: isMobile ? '12px' : '14px',
+      fontWeight: '700',
+      transition: 'all 0.2s'
+    },
+    mobileMenuBtn: {
+      background: 'none',
+      border: 'none',
+      fontSize: '24px',
+      cursor: 'pointer',
+      color: '#1f2937',
+      padding: '4px'
+    },
+    mobileClose: {
+      background: 'none',
+      border: 'none',
+      fontSize: '24px',
+      cursor: 'pointer',
+      color: '#1f2937'
     }
   }
 
@@ -146,13 +205,36 @@ export default function Layout({ children, session }) {
   if (isMobile) {
     return (
       <>
-        {/* Mobile Menu Toggle Button */}
-        <div style={styles.mobileMenuButton}
-          onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-          onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.05)'}
-          onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
-        >
-          <i className="fas fa-bars" style={{ color: 'white', fontSize: '20px' }}></i>
+        {/* Mobile Content */}
+        <div style={{ padding: '12px', minHeight: '100vh', background: '#f4f6fb', paddingBottom: '80px' }}>
+          {/* Header */}
+          <div style={styles.header}>
+            <div style={styles.logo} onClick={() => window.location.href = '/'}>
+              Social<span style={styles.logoGradient}>Vibe</span>
+            </div>
+            <div style={styles.headerRight}>
+              <TreeBarMenu session={session} />
+              <button 
+                style={styles.logoutBtn}
+                onClick={() => {
+                  supabase.auth.signOut()
+                  window.location.href = '/login'
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.background = '#dc2626'}
+                onMouseLeave={(e) => e.currentTarget.style.background = '#ef4444'}
+              >
+                Logout
+              </button>
+              <button style={styles.mobileMenuBtn} onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}>
+                <i className="fas fa-bars"></i>
+              </button>
+            </div>
+          </div>
+          
+          {/* Content */}
+          <div style={styles.feedContent}>
+            {children}
+          </div>
         </div>
 
         {/* Mobile Menu Overlay */}
@@ -163,7 +245,7 @@ export default function Layout({ children, session }) {
                 <div style={{ fontSize: '24px', fontWeight: '800' }}>
                   Social<span style={{ color: '#7c3aed' }}>Vibe</span>
                 </div>
-                <button onClick={() => setIsMobileMenuOpen(false)} style={{ background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer' }}>
+                <button style={styles.mobileClose} onClick={() => setIsMobileMenuOpen(false)}>
                   <i className="fas fa-times"></i>
                 </button>
               </div>
@@ -171,13 +253,6 @@ export default function Layout({ children, session }) {
             </div>
           </div>
         )}
-
-        {/* Mobile Content */}
-        <div style={{ padding: '16px', minHeight: '100vh', background: '#f4f6fb', paddingBottom: '80px' }}>
-          <div style={styles.feedContent}>
-            {children}
-          </div>
-        </div>
 
         {/* Mobile Bottom Navigation Bar */}
         <div style={styles.mobileBottomNav}>
@@ -196,7 +271,7 @@ export default function Layout({ children, session }) {
               background: '#ff4444',
               color: 'white',
               fontSize: '10px',
-              fontWeight: 'bold',
+              fontWeight: '700',
               padding: '2px 6px',
               borderRadius: '20px',
               border: '2px solid white'
@@ -211,7 +286,7 @@ export default function Layout({ children, session }) {
               background: '#ff4444',
               color: 'white',
               fontSize: '10px',
-              fontWeight: 'bold',
+              fontWeight: '700',
               padding: '2px 6px',
               borderRadius: '20px',
               border: '2px solid white'
@@ -239,6 +314,29 @@ export default function Layout({ children, session }) {
       
       {/* Main Feed Container */}
       <div style={styles.feedContainer}>
+        {/* Header */}
+        <div style={styles.header}>
+          <div style={styles.logo} onClick={() => window.location.href = '/'}>
+            Social<span style={styles.logoGradient}>Vibe</span>
+          </div>
+          <div style={styles.headerRight}>
+            <span style={styles.userEmail}>👋 {session?.user?.email}</span>
+            <TreeBarMenu session={session} />
+            <button 
+              style={styles.logoutBtn}
+              onClick={() => {
+                supabase.auth.signOut()
+                window.location.href = '/login'
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.background = '#dc2626'}
+              onMouseLeave={(e) => e.currentTarget.style.background = '#ef4444'}
+            >
+              Logout
+            </button>
+          </div>
+        </div>
+        
+        {/* Content */}
         <div style={styles.feedContent}>
           {children}
         </div>

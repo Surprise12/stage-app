@@ -1,4 +1,4 @@
-// src/components/VideoPlayer.jsx
+// src/components/VideoPlayer.jsx - UPDATED WITH INLINE STYLES
 import React, { useState, useEffect, useRef } from 'react'
 import { supabase } from '../lib/supabase'
 import { useNavigate } from 'react-router-dom'
@@ -33,88 +33,108 @@ export default function VideoPlayer({ video, session, onClose, onUpdate, onLike,
   }, [comments])
 
   async function checkLike() {
-    const { data } = await supabase
-      .from('video_likes')
-      .select('id')
-      .eq('user_id', session.user.id)
-      .eq('video_id', video.id)
-      .single()
-    setHasLiked(!!data)
+    try {
+      const { data } = await supabase
+        .from('video_likes')
+        .select('id')
+        .eq('user_id', session.user.id)
+        .eq('video_id', video.id)
+        .single()
+      setHasLiked(!!data)
+    } catch (error) {
+      console.error('Error checking like:', error)
+    }
   }
 
   async function loadComments() {
     setLoadingComments(true)
-    const { data } = await supabase
-      .from('video_comments')
-      .select(`
-        *,
-        profiles:user_id (
-          id,
-          username,
-          display_name,
-          avatar_url,
-          is_verified
-        )
-      `)
-      .eq('video_id', video.id)
-      .is('parent_id', null)
-      .order('created_at', { ascending: true })
-    
-    if (data) setComments(data)
+    try {
+      const { data } = await supabase
+        .from('video_comments')
+        .select(`
+          *,
+          profiles:user_id (
+            id,
+            username,
+            display_name,
+            avatar_url,
+            is_verified
+          )
+        `)
+        .eq('video_id', video.id)
+        .is('parent_id', null)
+        .order('created_at', { ascending: true })
+      
+      if (data) setComments(data)
+    } catch (error) {
+      console.error('Error loading comments:', error)
+    }
     setLoadingComments(false)
   }
 
   async function submitComment() {
     if (!newComment.trim()) return
     
-    const { error } = await supabase
-      .from('video_comments')
-      .insert({
-        user_id: session.user.id,
-        video_id: video.id,
-        content: newComment
-      })
-    
-    if (!error) {
-      setNewComment('')
-      await loadComments()
-      await supabase
-        .from('videos')
-        .update({ comment_count: comments.length + 1 })
-        .eq('id', video.id)
-      onUpdate()
+    try {
+      const { error } = await supabase
+        .from('video_comments')
+        .insert({
+          user_id: session.user.id,
+          video_id: video.id,
+          content: newComment
+        })
+      
+      if (!error) {
+        setNewComment('')
+        await loadComments()
+        await supabase
+          .from('videos')
+          .update({ comment_count: comments.length + 1 })
+          .eq('id', video.id)
+        onUpdate()
+      }
+    } catch (error) {
+      console.error('Error submitting comment:', error)
     }
   }
 
   async function handleLike() {
-    if (hasLiked) {
-      await supabase
-        .from('video_likes')
-        .delete()
-        .eq('user_id', session.user.id)
-        .eq('video_id', video.id)
-      setLikesCount(prev => prev - 1)
-      setHasLiked(false)
-    } else {
-      await supabase
-        .from('video_likes')
-        .insert({ user_id: session.user.id, video_id: video.id })
-      setLikesCount(prev => prev + 1)
-      setHasLiked(true)
+    try {
+      if (hasLiked) {
+        await supabase
+          .from('video_likes')
+          .delete()
+          .eq('user_id', session.user.id)
+          .eq('video_id', video.id)
+        setLikesCount(prev => prev - 1)
+        setHasLiked(false)
+      } else {
+        await supabase
+          .from('video_likes')
+          .insert({ user_id: session.user.id, video_id: video.id })
+        setLikesCount(prev => prev + 1)
+        setHasLiked(true)
+      }
+      onLike(video.id, likesCount)
+    } catch (error) {
+      console.error('Error handling like:', error)
     }
-    onLike(video.id, likesCount)
   }
 
   async function handleReaction(emoji) {
-    await supabase
-      .from('video_reactions')
-      .upsert({
-        user_id: session.user.id,
-        video_id: video.id,
-        reaction: emoji
-      }, { onConflict: 'user_id, video_id' })
-    setShowReactions(false)
-    onUpdate()
+    try {
+      await supabase
+        .from('video_reactions')
+        .upsert({
+          user_id: session.user.id,
+          video_id: video.id,
+          reaction: emoji
+        }, { onConflict: 'user_id, video_id' })
+      setShowReactions(false)
+      onUpdate()
+    } catch (error) {
+      console.error('Error handling reaction:', error)
+    }
   }
 
   function handleVideoClick() {
@@ -188,31 +208,341 @@ export default function VideoPlayer({ video, session, onClose, onUpdate, onLike,
 
   const reactions = ['👍', '❤️', '😂', '😮', '😢', '😠']
 
+  const styles = {
+    modal: {
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      background: 'rgba(0,0,0,0.8)',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      zIndex: 2000
+    },
+    modalContent: {
+      maxWidth: '900px',
+      width: '95%',
+      background: '#0a0a0a',
+      borderRadius: '24px',
+      overflow: 'hidden',
+      maxHeight: '90vh',
+      display: 'flex',
+      flexDirection: 'column'
+    },
+    closeBtn: {
+      position: 'absolute',
+      top: '16px',
+      right: '20px',
+      fontSize: '28px',
+      cursor: 'pointer',
+      color: 'white',
+      zIndex: 10,
+      background: 'rgba(0,0,0,0.5)',
+      width: '40px',
+      height: '40px',
+      borderRadius: '50%',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      border: 'none'
+    },
+    videoContainer: {
+      position: 'relative',
+      background: '#000'
+    },
+    video: {
+      width: '100%',
+      maxHeight: '60vh',
+      display: 'block',
+      cursor: 'pointer'
+    },
+    controlsOverlay: {
+      position: 'absolute',
+      bottom: 0,
+      left: 0,
+      right: 0,
+      background: 'linear-gradient(to top, rgba(0,0,0,0.8), transparent)',
+      padding: '16px 20px 12px 20px',
+      opacity: 0.7,
+      transition: 'opacity 0.3s',
+      cursor: 'default'
+    },
+    progressBar: {
+      width: '100%',
+      height: '4px',
+      background: 'rgba(255,255,255,0.3)',
+      borderRadius: '2px',
+      marginBottom: '8px',
+      cursor: 'pointer',
+      position: 'relative'
+    },
+    progressFill: {
+      height: '100%',
+      background: '#7c3aed',
+      borderRadius: '2px',
+      transition: 'width 0.1s'
+    },
+    controlsRow: {
+      display: 'flex',
+      justifyContent: 'space-between',
+      alignItems: 'center'
+    },
+    controlsLeft: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: '16px'
+    },
+    playBtn: {
+      background: 'none',
+      border: 'none',
+      color: 'white',
+      fontSize: '18px',
+      cursor: 'pointer',
+      padding: '4px'
+    },
+    timeDisplay: {
+      fontSize: '12px',
+      color: '#ccc'
+    },
+    controlsRight: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: '12px'
+    },
+    volumeSlider: {
+      width: '60px',
+      accentColor: '#7c3aed',
+      cursor: 'pointer'
+    },
+    fullscreenBtn: {
+      background: 'none',
+      border: 'none',
+      color: 'white',
+      fontSize: '16px',
+      cursor: 'pointer',
+      padding: '4px'
+    },
+    infoSection: {
+      padding: '20px 24px',
+      overflowY: 'auto',
+      flex: 1
+    },
+    videoTitle: {
+      marginBottom: '8px',
+      fontSize: '22px',
+      color: '#fff',
+      fontWeight: '700'
+    },
+    videoMeta: {
+      display: 'flex',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      flexWrap: 'wrap',
+      gap: '12px',
+      marginBottom: '16px'
+    },
+    creatorInfo: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: '12px',
+      cursor: 'pointer'
+    },
+    creatorAvatar: {
+      width: '40px',
+      height: '40px',
+      borderRadius: '50%',
+      objectFit: 'cover'
+    },
+    creatorName: {
+      fontWeight: '600',
+      color: '#fff'
+    },
+    creatorVerified: {
+      color: '#1da1f2',
+      marginLeft: '4px'
+    },
+    creatorTime: {
+      fontSize: '11px',
+      color: '#888'
+    },
+    actionButtons: {
+      display: 'flex',
+      gap: '16px',
+      alignItems: 'center'
+    },
+    likeBtn: {
+      fontSize: '14px',
+      background: 'none',
+      border: 'none',
+      cursor: 'pointer',
+      padding: '8px 12px',
+      borderRadius: '20px',
+      color: '#aaa',
+      transition: 'all 0.2s'
+    },
+    likeBtnActive: {
+      fontSize: '14px',
+      background: 'none',
+      border: 'none',
+      cursor: 'pointer',
+      padding: '8px 12px',
+      borderRadius: '20px',
+      color: '#ef4444',
+      transition: 'all 0.2s'
+    },
+    youtubeBtn: {
+      background: '#cc0000',
+      color: 'white',
+      border: 'none',
+      padding: '6px 14px',
+      borderRadius: '20px',
+      cursor: 'pointer',
+      fontSize: '12px',
+      fontWeight: '700'
+    },
+    shareBtn: {
+      background: 'rgba(255,255,255,0.1)',
+      color: 'white',
+      border: 'none',
+      padding: '6px 14px',
+      borderRadius: '20px',
+      cursor: 'pointer',
+      fontSize: '12px',
+      fontWeight: '700'
+    },
+    description: {
+      color: '#ccc',
+      marginBottom: '20px',
+      lineHeight: '1.6',
+      fontSize: '14px'
+    },
+    commentsSection: {
+      borderTop: '1px solid #2a2a2a',
+      padding: '20px 24px',
+      maxHeight: '300px',
+      overflowY: 'auto'
+    },
+    commentsTitle: {
+      marginBottom: '16px',
+      fontSize: '16px',
+      color: '#fff',
+      fontWeight: '700'
+    },
+    commentInputArea: {
+      display: 'flex',
+      gap: '12px',
+      marginBottom: '20px'
+    },
+    commentTextarea: {
+      flex: 1,
+      background: '#1a1a1a',
+      border: '1px solid #333',
+      borderRadius: '12px',
+      color: '#fff',
+      padding: '12px',
+      fontSize: '14px',
+      fontWeight: '700',
+      outline: 'none',
+      resize: 'vertical',
+      minHeight: '60px',
+      fontFamily: 'inherit'
+    },
+    postBtn: {
+      padding: '8px 20px',
+      background: '#7c3aed',
+      color: 'white',
+      border: 'none',
+      borderRadius: '12px',
+      cursor: 'pointer',
+      fontWeight: '700',
+      alignSelf: 'flex-end',
+      transition: 'all 0.2s'
+    },
+    commentItem: {
+      display: 'flex',
+      gap: '12px',
+      marginBottom: '16px',
+      padding: '12px',
+      background: '#1a1a1a',
+      borderRadius: '12px'
+    },
+    commentAvatar: {
+      width: '36px',
+      height: '36px',
+      borderRadius: '50%',
+      objectFit: 'cover',
+      cursor: 'pointer',
+      flexShrink: 0
+    },
+    commentContent: {
+      flex: 1
+    },
+    commentName: {
+      fontWeight: '700',
+      color: '#fff',
+      cursor: 'pointer'
+    },
+    commentText: {
+      color: '#ccc',
+      marginTop: '4px'
+    },
+    commentTime: {
+      fontSize: '11px',
+      color: '#888',
+      marginTop: '4px'
+    },
+    emptyComments: {
+      textAlign: 'center',
+      color: '#888',
+      padding: '20px'
+    },
+    reactionsPopup: {
+      position: 'absolute',
+      bottom: '100%',
+      left: '50%',
+      transform: 'translateX(-50%)',
+      background: 'white',
+      borderRadius: '20px',
+      padding: '8px',
+      boxShadow: '0 2px 12px rgba(0,0,0,0.15)',
+      display: 'flex',
+      gap: '6px',
+      zIndex: 10
+    },
+    reactionEmoji: {
+      fontSize: '24px',
+      cursor: 'pointer',
+      transition: 'transform 0.2s'
+    },
+    spinner: {
+      width: '30px',
+      height: '30px',
+      border: '3px solid rgba(124,58,237,0.2)',
+      borderTop: '3px solid #7c3aed',
+      borderRadius: '50%',
+      animation: 'spin 0.8s linear infinite',
+      margin: '20px auto'
+    }
+  }
+
   return (
-    <div className="modal" style={{ display: 'flex' }} onClick={onClose}>
-      <div className="modal-content" style={{ 
-        maxWidth: '900px', 
-        width: '95%', 
-        background: '#0a0a0a',
-        borderRadius: '24px',
-        overflow: 'hidden'
-      }} onClick={(e) => e.stopPropagation()}>
+    <div style={styles.modal} onClick={onClose}>
+      <div style={styles.modalContent} onClick={(e) => e.stopPropagation()}>
         
         {/* Close Button */}
-        <span className="close-modal" onClick={onClose} style={{ zIndex: 10 }}>&times;</span>
+        <button style={styles.closeBtn} onClick={onClose}>
+          <i className="fas fa-times"></i>
+        </button>
         
         {/* Video Player */}
-        <div style={{ position: 'relative', background: '#000' }}>
+        <div style={styles.videoContainer}>
           <video 
             ref={videoRef}
             controls={false}
             autoPlay 
-            style={{ 
-              width: '100%', 
-              maxHeight: '60vh',
-              display: 'block',
-              cursor: 'pointer'
-            }}
+            style={styles.video}
             src={video.video_url}
             onClick={handleVideoClick}
             onTimeUpdate={handleTimeUpdate}
@@ -221,56 +551,30 @@ export default function VideoPlayer({ video, session, onClose, onUpdate, onLike,
           </video>
           
           {/* Custom Controls Overlay */}
-          <div style={{
-            position: 'absolute',
-            bottom: 0,
-            left: 0,
-            right: 0,
-            background: 'linear-gradient(to top, rgba(0,0,0,0.8), transparent)',
-            padding: '16px 20px 12px 20px',
-            opacity: 0.7,
-            transition: 'opacity 0.3s',
-            cursor: 'default'
-          }}
-          onMouseEnter={(e) => e.currentTarget.style.opacity = '1'}
-          onMouseLeave={(e) => e.currentTarget.style.opacity = '0.7'}>
-            
+          <div 
+            style={styles.controlsOverlay}
+            onMouseEnter={(e) => e.currentTarget.style.opacity = '1'}
+            onMouseLeave={(e) => e.currentTarget.style.opacity = '0.7'}
+          >
             {/* Progress Bar */}
             <div 
               ref={progressBarRef}
-              style={{
-                width: '100%',
-                height: '4px',
-                background: 'rgba(255,255,255,0.3)',
-                borderRadius: '2px',
-                marginBottom: '8px',
-                cursor: 'pointer',
-                position: 'relative'
-              }}
+              style={styles.progressBar}
               onClick={handleProgressClick}
             >
-              <div style={{
-                width: `${progress}%`,
-                height: '100%',
-                background: '#7c3aed',
-                borderRadius: '2px',
-                transition: 'width 0.1s'
-              }}></div>
+              <div style={{...styles.progressFill, width: `${progress}%`}}></div>
             </div>
             
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                <button 
-                  onClick={handleVideoClick}
-                  style={{ background: 'none', border: 'none', color: 'white', fontSize: '18px', cursor: 'pointer' }}
-                >
+            <div style={styles.controlsRow}>
+              <div style={styles.controlsLeft}>
+                <button style={styles.playBtn} onClick={handleVideoClick}>
                   <i className={`fas fa-${isPlaying ? 'pause' : 'play'}`}></i>
                 </button>
-                <span style={{ fontSize: '12px', color: '#ccc' }}>
+                <span style={styles.timeDisplay}>
                   {formatTime(videoRef.current?.currentTime || 0)} / {formatTime(duration)}
                 </span>
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <div style={styles.controlsRight}>
                 <input 
                   type="range" 
                   min="0" 
@@ -278,12 +582,9 @@ export default function VideoPlayer({ video, session, onClose, onUpdate, onLike,
                   step="0.01" 
                   value={volume}
                   onChange={handleVolumeChange}
-                  style={{ width: '60px', accentColor: '#7c3aed' }}
+                  style={styles.volumeSlider}
                 />
-                <button 
-                  onClick={handleFullscreen}
-                  style={{ background: 'none', border: 'none', color: 'white', fontSize: '16px', cursor: 'pointer' }}
-                >
+                <button style={styles.fullscreenBtn} onClick={handleFullscreen}>
                   <i className="fas fa-expand"></i>
                 </button>
               </div>
@@ -292,54 +593,41 @@ export default function VideoPlayer({ video, session, onClose, onUpdate, onLike,
         </div>
         
         {/* Video Info */}
-        <div style={{ padding: '20px 24px' }}>
-          <h2 style={{ marginBottom: '8px', fontSize: '22px', color: '#fff' }}>{video.title}</h2>
+        <div style={styles.infoSection}>
+          <h2 style={styles.videoTitle}>{video.title}</h2>
           
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px', marginBottom: '16px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer' }} onClick={() => navigate(`/profile/${video.user_id}`)}>
+          <div style={styles.videoMeta}>
+            <div style={styles.creatorInfo} onClick={() => navigate(`/profile/${video.user_id}`)}>
               <img 
                 src={video.profiles?.avatar_url || `https://ui-avatars.com/api/?name=${(video.profiles?.username || 'U')[0]}&background=000&color=fff`}
-                style={{ width: '40px', height: '40px', borderRadius: '50%', objectFit: 'cover' }}
+                style={styles.creatorAvatar}
                 alt="avatar"
               />
               <div>
-                <div style={{ fontWeight: '600', color: '#fff' }}>
+                <div style={styles.creatorName}>
                   {video.profiles?.display_name || video.profiles?.username}
-                  {video.profiles?.is_verified && <span style={{ color: '#1da1f2', marginLeft: '4px' }}>✓</span>}
+                  {video.profiles?.is_verified && <span style={styles.creatorVerified}>✓</span>}
                 </div>
-                <div style={{ fontSize: '0.7rem', color: '#888' }}>{formatTimeAgo(video.created_at)}</div>
+                <div style={styles.creatorTime}>{formatTimeAgo(video.created_at)}</div>
               </div>
             </div>
             
-            <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
+            <div style={styles.actionButtons}>
               <div style={{ position: 'relative' }}>
                 <button 
-                  className={`action-btn ${hasLiked ? 'active' : ''}`} 
+                  style={hasLiked ? styles.likeBtnActive : styles.likeBtn}
                   onClick={handleLike}
                   onMouseEnter={() => setShowReactions(true)}
                   onMouseLeave={() => setTimeout(() => setShowReactions(false), 300)}
-                  style={{ fontSize: '1rem', background: 'none', border: 'none', cursor: 'pointer', padding: '8px 12px', borderRadius: '20px', color: hasLiked ? '#ef4444' : '#aaa' }}
                 >
-                  <i className={`fas fa-heart`}></i> {likesCount}
+                  <i className="fas fa-heart"></i> {likesCount}
                 </button>
                 {showReactions && (
-                  <div style={{
-                    position: 'absolute',
-                    bottom: '100%',
-                    left: '50%',
-                    transform: 'translateX(-50%)',
-                    background: 'white',
-                    borderRadius: '20px',
-                    padding: '8px',
-                    boxShadow: '0 2px 12px rgba(0,0,0,0.15)',
-                    display: 'flex',
-                    gap: '6px',
-                    zIndex: 10
-                  }}>
+                  <div style={styles.reactionsPopup}>
                     {reactions.map(emoji => (
                       <span 
                         key={emoji} 
-                        style={{ fontSize: '24px', cursor: 'pointer', transition: 'transform 0.2s' }}
+                        style={styles.reactionEmoji}
                         onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.3)'}
                         onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
                         onClick={() => handleReaction(emoji)}
@@ -352,17 +640,15 @@ export default function VideoPlayer({ video, session, onClose, onUpdate, onLike,
               </div>
               {video.youtube_url && (
                 <button 
-                  className="btn btn-outline btn-small"
+                  style={styles.youtubeBtn}
                   onClick={() => window.open(video.youtube_url, '_blank')}
-                  style={{ background: '#cc0000', color: 'white', border: 'none', padding: '6px 14px', borderRadius: '20px', cursor: 'pointer' }}
                 >
                   <i className="fab fa-youtube"></i> YouTube
                 </button>
               )}
               <button 
-                className="btn btn-secondary btn-small"
+                style={styles.shareBtn}
                 onClick={() => navigator.clipboard.writeText(window.location.href)}
-                style={{ background: 'rgba(255,255,255,0.1)', color: 'white', border: 'none', padding: '6px 14px', borderRadius: '20px', cursor: 'pointer' }}
               >
                 <i className="fas fa-share"></i> Share
               </button>
@@ -370,55 +656,58 @@ export default function VideoPlayer({ video, session, onClose, onUpdate, onLike,
           </div>
           
           {video.description && (
-            <p style={{ color: '#ccc', marginBottom: '20px', lineHeight: '1.6', fontSize: '14px' }}>{video.description}</p>
+            <p style={styles.description}>{video.description}</p>
           )}
         </div>
         
         {/* Comments Section */}
-        <div style={{ borderTop: '1px solid #2a2a2a', padding: '20px 24px' }}>
-          <h3 style={{ marginBottom: '16px', fontSize: '16px', color: '#fff' }}>
+        <div style={styles.commentsSection}>
+          <h3 style={styles.commentsTitle}>
             Comments ({video.comment_count || 0})
           </h3>
           
-          <div style={{ display: 'flex', gap: '12px', marginBottom: '20px' }}>
+          <div style={styles.commentInputArea}>
             <textarea
-              className="input"
+              style={styles.commentTextarea}
               placeholder="Write a comment..."
               value={newComment}
               onChange={(e) => setNewComment(e.target.value)}
               rows="2"
-              style={{ flex: 1, background: '#1a1a1a', border: '1px solid #333', borderRadius: '12px', color: '#fff', padding: '12px' }}
               onKeyPress={(e) => e.key === 'Enter' && !e.shiftKey && submitComment()}
             />
-            <button className="btn btn-primary btn-small" onClick={submitComment} style={{ alignSelf: 'flex-end' }}>
+            <button 
+              style={styles.postBtn}
+              onClick={submitComment}
+              onMouseEnter={(e) => e.currentTarget.style.background = '#6d28d9'}
+              onMouseLeave={(e) => e.currentTarget.style.background = '#7c3aed'}
+            >
               Post
             </button>
           </div>
           
-          {loadingComments && <div className="spinner" style={{ width: '30px', height: '30px' }}></div>}
+          {loadingComments && <div style={styles.spinner}></div>}
           
           {comments.map(comment => (
-            <div key={comment.id} className="comment" style={{ display: 'flex', gap: '12px', marginBottom: '16px', padding: '12px', background: '#1a1a1a', borderRadius: '12px' }}>
+            <div key={comment.id} style={styles.commentItem}>
               <img 
                 src={comment.profiles?.avatar_url || `https://ui-avatars.com/api/?name=${(comment.profiles?.username || 'U')[0]}&background=000&color=fff`} 
-                className="comment-avatar" 
+                style={styles.commentAvatar}
                 alt="avatar"
-                style={{ width: '36px', height: '36px', borderRadius: '50%', objectFit: 'cover', cursor: 'pointer' }}
                 onClick={() => navigate(`/profile/${comment.user_id}`)}
               />
-              <div className="comment-content" style={{ flex: 1 }}>
-                <div className="comment-name" style={{ fontWeight: 'bold', color: '#fff', cursor: 'pointer' }} onClick={() => navigate(`/profile/${comment.user_id}`)}>
+              <div style={styles.commentContent}>
+                <div style={styles.commentName} onClick={() => navigate(`/profile/${comment.user_id}`)}>
                   {comment.profiles?.display_name || comment.profiles?.username}
-                  {comment.profiles?.is_verified && <span style={{ color: '#1da1f2', marginLeft: '4px' }}>✓</span>}
+                  {comment.profiles?.is_verified && <span style={styles.creatorVerified}>✓</span>}
                 </div>
-                <div className="comment-text" style={{ color: '#ccc', marginTop: '4px' }}>{comment.content}</div>
-                <div className="comment-time" style={{ fontSize: '0.7rem', color: '#888', marginTop: '4px' }}>{formatTimeAgo(comment.created_at)}</div>
+                <div style={styles.commentText}>{comment.content}</div>
+                <div style={styles.commentTime}>{formatTimeAgo(comment.created_at)}</div>
               </div>
             </div>
           ))}
           
           {comments.length === 0 && !loadingComments && (
-            <p style={{ textAlign: 'center', color: '#888', padding: '20px' }}>No comments yet. Be the first!</p>
+            <p style={styles.emptyComments}>No comments yet. Be the first!</p>
           )}
           <div ref={commentsEndRef} />
         </div>

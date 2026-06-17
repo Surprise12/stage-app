@@ -1,4 +1,4 @@
-// src/components/RightSidebar.jsx - FIXED WITH INLINE STYLES
+// src/components/RightSidebar.jsx - UPDATED (Removed Birthdays & Sponsors)
 import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
@@ -8,9 +8,8 @@ export default function RightSidebar({ session }) {
   const [suggestions, setSuggestions] = useState([])
   const [friendRequests, setFriendRequests] = useState([])
   const [trendingTopics, setTrendingTopics] = useState([])
-  const [birthdays, setBirthdays] = useState([])
   const [collapsedWidgets, setCollapsedWidgets] = useState({})
-  const [widgetOrder, setWidgetOrder] = useState(['suggestions', 'requests', 'trending', 'birthdays', 'sponsors'])
+  const [widgetOrder, setWidgetOrder] = useState(['suggestions', 'requests', 'trending'])
   const [showCustomize, setShowCustomize] = useState(false)
   const [followedSuggestions, setFollowedSuggestions] = useState([])
 
@@ -18,7 +17,6 @@ export default function RightSidebar({ session }) {
     loadSuggestions()
     loadFriendRequests()
     loadTrending()
-    loadBirthdays()
     loadWidgetPreferences()
   }, [])
 
@@ -55,6 +53,7 @@ export default function RightSidebar({ session }) {
 
   async function loadSuggestions() {
     try {
+      // In production, this would match phone contacts or nearby users
       const { data } = await supabase
         .from('profiles')
         .select('id, username, display_name, avatar_url, is_verified, bio, followers_count')
@@ -73,7 +72,7 @@ export default function RightSidebar({ session }) {
         .select('*, sender:sender_id(id, username, display_name, avatar_url, is_verified)')
         .eq('receiver_id', session?.user?.id)
         .eq('status', 'pending')
-        .limit(3)
+        .limit(5)
       if (data) setFriendRequests(data)
     } catch (error) {
       console.error('Error loading friend requests:', error)
@@ -101,14 +100,6 @@ export default function RightSidebar({ session }) {
     } catch (error) {
       console.error('Error loading trending:', error)
     }
-  }
-
-  async function loadBirthdays() {
-    setBirthdays([
-      { id: 1, name: 'Sarah Chen', username: 'sarahchen', avatar: 'S', date: 'Today' },
-      { id: 2, name: 'Marcus Webb', username: 'marcuswebb', avatar: 'M', date: 'Tomorrow' },
-      { id: 3, name: 'Elena Rodriguez', username: 'elenarodriguez', avatar: 'E', date: 'In 3 days' }
-    ])
   }
 
   async function handleFollow(userId) {
@@ -163,7 +154,6 @@ export default function RightSidebar({ session }) {
     saveWidgetPreferences()
   }
 
-  // Inline styles
   const styles = {
     rightSidebar: {
       width: '100%',
@@ -186,7 +176,7 @@ export default function RightSidebar({ session }) {
       marginBottom: '0'
     },
     widgetTitle: {
-      fontWeight: 'bold',
+      fontWeight: '700',
       fontSize: '15px',
       color: '#000'
     },
@@ -209,7 +199,7 @@ export default function RightSidebar({ session }) {
       alignItems: 'center',
       justifyContent: 'center',
       color: 'white',
-      fontWeight: 'bold',
+      fontWeight: '700',
       fontSize: '16px',
       flexShrink: 0,
       overflow: 'hidden'
@@ -219,7 +209,7 @@ export default function RightSidebar({ session }) {
       minWidth: 0
     },
     suggestionName: {
-      fontWeight: 'bold',
+      fontWeight: '700',
       fontSize: '14px',
       color: '#000',
       whiteSpace: 'nowrap',
@@ -228,7 +218,8 @@ export default function RightSidebar({ session }) {
     },
     suggestionMeta: {
       fontSize: '11px',
-      color: '#666'
+      color: '#666',
+      fontWeight: '700'
     },
     followBtn: {
       padding: '4px 14px',
@@ -237,7 +228,7 @@ export default function RightSidebar({ session }) {
       border: 'none',
       borderRadius: '20px',
       fontSize: '11px',
-      fontWeight: 'bold',
+      fontWeight: '700',
       cursor: 'pointer',
       flexShrink: 0,
       transition: 'all 0.2s'
@@ -249,7 +240,7 @@ export default function RightSidebar({ session }) {
       border: 'none',
       borderRadius: '20px',
       fontSize: '11px',
-      fontWeight: 'bold',
+      fontWeight: '700',
       cursor: 'default',
       flexShrink: 0
     },
@@ -257,7 +248,7 @@ export default function RightSidebar({ session }) {
       color: '#000',
       cursor: 'pointer',
       fontSize: '13px',
-      fontWeight: 'bold',
+      fontWeight: '700',
       marginTop: '8px',
       textAlign: 'center'
     },
@@ -284,12 +275,13 @@ export default function RightSidebar({ session }) {
       minWidth: 0
     },
     requestName: {
-      fontWeight: 'bold',
+      fontWeight: '700',
       fontSize: '14px'
     },
     requestMutual: {
       fontSize: '11px',
-      color: '#666'
+      color: '#666',
+      fontWeight: '700'
     },
     requestButtons: {
       display: 'flex',
@@ -303,7 +295,7 @@ export default function RightSidebar({ session }) {
       border: 'none',
       cursor: 'pointer',
       fontSize: '14px',
-      fontWeight: 'bold',
+      fontWeight: '700',
       background: '#000',
       color: 'white',
       transition: 'all 0.2s'
@@ -315,7 +307,7 @@ export default function RightSidebar({ session }) {
       border: 'none',
       cursor: 'pointer',
       fontSize: '14px',
-      fontWeight: 'bold',
+      fontWeight: '700',
       background: '#eee',
       color: '#666',
       transition: 'all 0.2s'
@@ -337,7 +329,7 @@ export default function RightSidebar({ session }) {
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      fontWeight: 'bold',
+      fontWeight: '700',
       fontSize: '12px',
       flexShrink: 0
     },
@@ -345,85 +337,22 @@ export default function RightSidebar({ session }) {
       flex: 1
     },
     trendingTopic: {
-      fontWeight: 'bold',
+      fontWeight: '700',
       fontSize: '14px'
     },
     trendingStats: {
       fontSize: '11px',
-      color: '#888'
+      color: '#888',
+      fontWeight: '700'
     },
     trendingChange: {
       fontSize: '11px',
-      fontWeight: 'bold'
+      fontWeight: '700'
     },
     trendingChangePositive: {
       fontSize: '11px',
-      fontWeight: 'bold',
+      fontWeight: '700',
       color: '#10b981'
-    },
-    birthdayItem: {
-      display: 'flex',
-      alignItems: 'center',
-      gap: '12px',
-      padding: '8px 0',
-      borderBottom: '1px solid #f0f2f5',
-      cursor: 'pointer',
-      transition: 'all 0.2s'
-    },
-    birthdayIcon: {
-      width: '40px',
-      height: '40px',
-      borderRadius: '50%',
-      background: '#f0f2f5',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      fontSize: '20px',
-      flexShrink: 0
-    },
-    birthdayInfo: {
-      flex: 1
-    },
-    birthdayName: {
-      fontWeight: 'bold',
-      fontSize: '14px'
-    },
-    birthdayDate: {
-      fontSize: '11px',
-      color: '#666'
-    },
-    birthdayWishBtn: {
-      background: '#000',
-      color: 'white',
-      border: 'none',
-      padding: '4px 12px',
-      borderRadius: '20px',
-      fontSize: '11px',
-      fontWeight: 'bold',
-      cursor: 'pointer',
-      flexShrink: 0,
-      transition: 'background 0.2s'
-    },
-    sponsorsRow: {
-      display: 'flex',
-      flexWrap: 'wrap',
-      gap: '12px',
-      justifyContent: 'flex-start',
-      padding: '4px 0'
-    },
-    sponsorIcon: {
-      width: '48px',
-      height: '48px',
-      background: '#f8f9fa',
-      borderRadius: '16px',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      fontSize: '24px',
-      color: '#333',
-      cursor: 'pointer',
-      border: '1px solid #e0e0e0',
-      transition: 'all 0.2s'
     },
     customizeBtn: {
       background: 'none',
@@ -431,6 +360,7 @@ export default function RightSidebar({ session }) {
       cursor: 'pointer',
       color: '#666',
       fontSize: '13px',
+      fontWeight: '700',
       padding: '4px 8px',
       borderRadius: '6px',
       transition: 'all 0.2s'
@@ -458,7 +388,7 @@ export default function RightSidebar({ session }) {
     },
     modalTitle: {
       fontSize: '24px',
-      fontWeight: 'bold',
+      fontWeight: '700',
       marginBottom: '20px'
     },
     widgetCustomizeItem: {
@@ -478,7 +408,8 @@ export default function RightSidebar({ session }) {
       padding: '4px 12px',
       borderRadius: '20px',
       cursor: 'pointer',
-      fontSize: '11px'
+      fontSize: '11px',
+      fontWeight: '700'
     },
     widgetToggleHidden: {
       background: '#e0e0e0',
@@ -487,13 +418,15 @@ export default function RightSidebar({ session }) {
       padding: '4px 12px',
       borderRadius: '20px',
       cursor: 'pointer',
-      fontSize: '11px'
+      fontSize: '11px',
+      fontWeight: '700'
     },
     emptyState: {
       color: '#888',
       fontSize: '13px',
       textAlign: 'center',
-      padding: '16px'
+      padding: '16px',
+      fontWeight: '700'
     }
   }
 
@@ -580,38 +513,6 @@ export default function RightSidebar({ session }) {
           ))}
         </div>
       )
-    },
-    birthdays: {
-      title: 'Birthdays 🎂',
-      icon: '🎂',
-      content: (
-        <div>
-          {birthdays.map(birthday => (
-            <div key={birthday.id} style={styles.birthdayItem} onClick={() => navigate(`/profile/${birthday.username}`)}>
-              <div style={styles.birthdayIcon}>🎂</div>
-              <div style={styles.birthdayInfo}>
-                <div style={styles.birthdayName}>{birthday.name}</div>
-                <div style={styles.birthdayDate}>{birthday.date}</div>
-              </div>
-              <button style={styles.birthdayWishBtn} onClick={(e) => { e.stopPropagation(); alert(`🎉 Birthday wish sent to ${birthday.name}!`); }}>Wish</button>
-            </div>
-          ))}
-        </div>
-      )
-    },
-    sponsors: {
-      title: 'Sponsored',
-      icon: '📢',
-      content: (
-        <div style={styles.sponsorsRow}>
-          <div style={styles.sponsorIcon}><i className="fab fa-spotify"></i></div>
-          <div style={styles.sponsorIcon}><i className="fab fa-apple"></i></div>
-          <div style={styles.sponsorIcon}><i className="fab fa-soundcloud"></i></div>
-          <div style={styles.sponsorIcon}><i className="fab fa-bandcamp"></i></div>
-          <div style={styles.sponsorIcon}><i className="fab fa-nike"></i></div>
-          <div style={styles.sponsorIcon}><i className="fab fa-adidas"></i></div>
-        </div>
-      )
     }
   }
 
@@ -622,7 +523,6 @@ export default function RightSidebar({ session }) {
         <button 
           style={styles.customizeBtn}
           onClick={() => setShowCustomize(!showCustomize)}
-          title="Customize sidebar"
           onMouseEnter={(e) => { e.currentTarget.style.background = '#f0f2f5'; e.currentTarget.style.color = '#000'; }}
           onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#666'; }}
         >
@@ -635,7 +535,7 @@ export default function RightSidebar({ session }) {
         <div style={styles.modalOverlay} onClick={() => setShowCustomize(false)}>
           <div style={styles.modalContent} onClick={(e) => e.stopPropagation()}>
             <div style={styles.modalTitle}>Customize Right Sidebar</div>
-            <p style={{ color: '#888', marginBottom: '16px' }}>Drag to reorder, click to hide/show widgets</p>
+            <p style={{ color: '#888', marginBottom: '16px', fontWeight: '700' }}>Drag to reorder, click to hide/show widgets</p>
             {widgetOrder.map((widgetId, index) => {
               const widget = widgets[widgetId]
               return (
@@ -653,7 +553,7 @@ export default function RightSidebar({ session }) {
                   onMouseLeave={(e) => e.currentTarget.style.background = '#f5f5f5'}
                 >
                   <i className="fas fa-grip-vertical" style={{ color: '#999' }}></i>
-                  <span style={{ flex: 1 }}>{widget?.title || widgetId}</span>
+                  <span style={{ flex: 1, fontWeight: '700' }}>{widget?.title || widgetId}</span>
                   <button 
                     style={collapsedWidgets[widgetId] ? styles.widgetToggleHidden : styles.widgetToggle}
                     onClick={() => toggleWidget(widgetId)}
@@ -670,7 +570,7 @@ export default function RightSidebar({ session }) {
               border: 'none',
               padding: '14px',
               borderRadius: '40px',
-              fontWeight: 'bold',
+              fontWeight: '700',
               cursor: 'pointer',
               fontSize: '14px',
               marginTop: '16px',
