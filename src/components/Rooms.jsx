@@ -1,4 +1,4 @@
-// src/components/Rooms.jsx
+// src/components/Rooms.jsx - UPDATED WITH LAYOUT INTEGRATION
 import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
@@ -60,8 +60,9 @@ export default function Rooms({ session }) {
   const styles = {
     container: {
       padding: '20px',
-      maxWidth: '800px',
-      margin: '0 auto'
+      maxWidth: '680px',
+      margin: '0 auto',
+      width: '100%'
     },
     header: {
       display: 'flex',
@@ -294,14 +295,28 @@ export default function Rooms({ session }) {
       fontWeight: '700',
       fontSize: '16px',
       marginTop: '8px'
+    },
+    emptyState: {
+      textAlign: 'center',
+      padding: '40px',
+      color: '#6b7280'
+    },
+    emptyIcon: {
+      fontSize: '48px',
+      color: '#ccc',
+      marginBottom: '16px'
     }
   }
 
   if (loading) {
-    return <div className="spinner" style={{ marginTop: '40px' }}></div>
+    return (
+      <div style={styles.container}>
+        <div className="spinner" style={{ marginTop: '40px' }}></div>
+      </div>
+    )
   }
 
-  // Active Room View
+  // Active Room View - Full screen modal
   if (activeRoom) {
     return (
       <div style={styles.activeRoomContainer} onClick={leaveRoom}>
@@ -324,7 +339,12 @@ export default function Rooms({ session }) {
             👂 {activeRoom.listeners} listening
           </div>
           
-          <button style={styles.leaveBtn} onClick={leaveRoom}>
+          <button 
+            style={styles.leaveBtn} 
+            onClick={leaveRoom}
+            onMouseEnter={(e) => e.currentTarget.style.background = '#dc2626'}
+            onMouseLeave={(e) => e.currentTarget.style.background = '#ef4444'}
+          >
             Leave Room
           </button>
         </div>
@@ -346,51 +366,61 @@ export default function Rooms({ session }) {
         </button>
       </div>
 
-      {rooms.map(room => (
-        <div 
-          key={room.id} 
-          style={styles.roomCard}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.transform = 'translateX(4px)'
-            e.currentTarget.style.boxShadow = '0 4px 16px rgba(0,0,0,0.1)'
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.transform = 'translateX(0)'
-            e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.05)'
-          }}
-        >
-          <div style={styles.roomHeader}>
-            <div>
-              <div style={styles.roomName}>{room.name}</div>
-              <div style={styles.roomTopic}>{room.topic}</div>
-            </div>
-            <span style={styles.roomBadge}>{room.type === 'audio' ? '🎧 Audio' : '📹 Video'}</span>
+      {rooms.length === 0 ? (
+        <div style={styles.roomCard}>
+          <div style={styles.emptyState}>
+            <div style={styles.emptyIcon}>🎙️</div>
+            <p>No rooms available</p>
+            <p style={{ fontSize: '14px', marginTop: '8px' }}>Create a room to start a conversation</p>
           </div>
-          
-          <div style={styles.roomStats}>
-            <span>👤 {room.speakers.length} speakers</span>
-            <span>👂 {room.listeners} listeners</span>
-            <span>{room.is_active ? '🟢 Active' : '🔴 Inactive'}</span>
-          </div>
-          
-          <div style={styles.roomSpeakers}>
-            {room.speakers.map((speaker, index) => (
-              <div key={index} style={styles.speakerAvatar}>
-                {speaker[0]?.toUpperCase() || 'U'}
-              </div>
-            ))}
-          </div>
-          
-          <button 
-            style={styles.joinBtn}
-            onClick={() => joinRoom(room)}
-            onMouseEnter={(e) => e.currentTarget.style.background = '#333'}
-            onMouseLeave={(e) => e.currentTarget.style.background = '#000'}
-          >
-            Join Room
-          </button>
         </div>
-      ))}
+      ) : (
+        rooms.map(room => (
+          <div 
+            key={room.id} 
+            style={styles.roomCard}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.transform = 'translateX(4px)'
+              e.currentTarget.style.boxShadow = '0 4px 16px rgba(0,0,0,0.1)'
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = 'translateX(0)'
+              e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.05)'
+            }}
+          >
+            <div style={styles.roomHeader}>
+              <div>
+                <div style={styles.roomName}>{room.name}</div>
+                <div style={styles.roomTopic}>{room.topic}</div>
+              </div>
+              <span style={styles.roomBadge}>{room.type === 'audio' ? '🎧 Audio' : '📹 Video'}</span>
+            </div>
+            
+            <div style={styles.roomStats}>
+              <span>👤 {room.speakers.length} speakers</span>
+              <span>👂 {room.listeners} listeners</span>
+              <span>{room.is_active ? '🟢 Active' : '🔴 Inactive'}</span>
+            </div>
+            
+            <div style={styles.roomSpeakers}>
+              {room.speakers.map((speaker, index) => (
+                <div key={index} style={styles.speakerAvatar}>
+                  {speaker[0]?.toUpperCase() || 'U'}
+                </div>
+              ))}
+            </div>
+            
+            <button 
+              style={styles.joinBtn}
+              onClick={() => joinRoom(room)}
+              onMouseEnter={(e) => e.currentTarget.style.background = '#333'}
+              onMouseLeave={(e) => e.currentTarget.style.background = '#000'}
+            >
+              Join Room
+            </button>
+          </div>
+        ))
+      )}
 
       {/* Create Room Modal */}
       {showCreateRoom && (
@@ -417,8 +447,22 @@ export default function Rooms({ session }) {
               <option value="audio">🎧 Audio</option>
               <option value="video">📹 Video</option>
             </select>
-            <button style={styles.formBtn} onClick={createRoom}>Create Room</button>
-            <button style={styles.cancelBtn} onClick={() => setShowCreateRoom(false)}>Cancel</button>
+            <button 
+              style={styles.formBtn} 
+              onClick={createRoom}
+              onMouseEnter={(e) => e.currentTarget.style.background = '#333'}
+              onMouseLeave={(e) => e.currentTarget.style.background = '#000'}
+            >
+              Create Room
+            </button>
+            <button 
+              style={styles.cancelBtn} 
+              onClick={() => setShowCreateRoom(false)}
+              onMouseEnter={(e) => e.currentTarget.style.background = '#f3f4f6'}
+              onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+            >
+              Cancel
+            </button>
           </div>
         </div>
       )}
