@@ -1,9 +1,10 @@
-// src/components/Layout.jsx - MINIMAL WORKING VERSION
+// src/components/Layout.jsx - WITH LEFTSIDEBAR
 import React from 'react'
 import { supabase } from '../lib/supabase'
+import LeftSidebar from './LeftSidebar'
 
 export default function Layout({ children, session }) {
-  console.log('📐 Minimal Layout rendering with session:', session?.user?.email)
+  console.log('📐 Layout rendering with session:', session?.user?.email)
 
   if (!session) {
     return <>{children}</>
@@ -11,58 +12,79 @@ export default function Layout({ children, session }) {
 
   return (
     <div style={{
+      display: 'flex',
       padding: '20px',
-      maxWidth: '1200px',
+      maxWidth: '1400px',
       margin: '0 auto',
       minHeight: '100vh',
-      background: '#f4f6fb'
+      background: '#f4f6fb',
+      gap: '20px'
     }}>
-      {/* Header */}
+      {/* Left Sidebar */}
       <div style={{
-        background: 'white',
-        padding: '16px 24px',
-        borderRadius: '12px',
-        marginBottom: '20px',
-        boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        flexWrap: 'wrap',
-        gap: '10px'
-      }}>
-        <div style={{ fontSize: '24px', fontWeight: '800' }}>
-          Social<span style={{ color: '#7c3aed' }}>Vibe</span>
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-          <span>👋 {session?.user?.email}</span>
-          <button 
-            onClick={() => {
-              supabase.auth.signOut()
-              window.location.href = '/login'
-            }}
-            style={{
-              padding: '8px 16px',
-              background: '#ef4444',
-              color: 'white',
-              border: 'none',
-              borderRadius: '8px',
-              cursor: 'pointer'
-            }}
-          >
-            Logout
-          </button>
-        </div>
-      </div>
-      
-      {/* Main Content */}
-      <div style={{
+        width: '280px',
+        flexShrink: 0,
         background: 'white',
         borderRadius: '16px',
-        padding: '24px',
-        minHeight: '400px',
+        padding: '16px',
         boxShadow: '0 2px 8px rgba(0,0,0,0.05)'
       }}>
-        {children}
+        <LeftSidebar session={session} />
+      </div>
+
+      {/* Main Content */}
+      <div style={{
+        flex: 1,
+        maxWidth: '680px',
+        margin: '0 auto'
+      }}>
+        {/* Header */}
+        <div style={{
+          background: 'white',
+          padding: '16px 24px',
+          borderRadius: '12px',
+          marginBottom: '20px',
+          boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          flexWrap: 'wrap',
+          gap: '10px'
+        }}>
+          <div style={{ fontSize: '24px', fontWeight: '800' }}>
+            Social<span style={{ color: '#7c3aed' }}>Vibe</span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+            <span>👋 {session?.user?.email}</span>
+            <button 
+              onClick={() => {
+                supabase.auth.signOut()
+                window.location.href = '/login'
+              }}
+              style={{
+                padding: '8px 16px',
+                background: '#ef4444',
+                color: 'white',
+                border: 'none',
+                borderRadius: '8px',
+                cursor: 'pointer'
+              }}
+            >
+              Logout
+            </button>
+          </div>
+        </div>
+        
+        {/* Main Content */}
+        <div style={{
+          background: 'white',
+          borderRadius: '16px',
+          padding: '24px',
+          minHeight: '400px',
+          boxShadow: '0 2px 8px rgba(0,0,0,0.05)'
+        }}>
+          {children}
+        </div>
       </div>
     </div>
   )
