@@ -157,6 +157,7 @@ export default function Login() {
     return () => clearTimeout(timer)
   }, [])
 
+  // FIXED: handleLogin with window.location for reliable redirect
   const handleLogin = async (e) => {
     e.preventDefault()
     setLoading(true)
@@ -172,14 +173,13 @@ export default function Login() {
         setError(error.message)
         setLoading(false)
       } else {
-        console.log('Login successful:', data)
+        console.log('✅ Login successful:', data)
         setLoading(false)
-        // Use navigate instead of window.location
-        // This prevents full page reload and keeps React state
-        navigate('/', { replace: true })
+        // Use window.location for most reliable redirect
+        window.location.href = '/'
       }
     } catch (err) {
-      console.error('Login error:', err)
+      console.error('❌ Login error:', err)
       setError('An unexpected error occurred')
       setLoading(false)
     }

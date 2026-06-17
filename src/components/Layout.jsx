@@ -22,11 +22,14 @@ export default function Layout({ children, session }) {
 
   const isMobile = windowWidth < 768
   
-  // Check if current page is auth page (login or register)
-  const isAuthPage = location.pathname === '/login' || location.pathname === '/register'
-  
-  // If on auth page, render only children with no layout
-  if (isAuthPage) {
+  // REMOVE THIS - it's causing issues
+  // const isAuthPage = location.pathname === '/login' || location.pathname === '/register'
+  // if (isAuthPage) {
+  //   return <>{children}</>
+  // }
+
+  // If no session, just render children (shouldn't happen, but safety)
+  if (!session) {
     return <>{children}</>
   }
 

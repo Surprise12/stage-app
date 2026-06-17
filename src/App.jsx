@@ -66,6 +66,20 @@ function App() {
     }
   }, [])
 
+  // Safety check for redirect loops
+  useEffect(() => {
+    if (!loading) {
+      if (session && window.location.pathname === '/login') {
+        console.log('🔍 Redirecting from login to home')
+        window.location.href = '/'
+      }
+      if (!session && window.location.pathname === '/') {
+        console.log('🔍 Redirecting from home to login')
+        window.location.href = '/login'
+      }
+    }
+  }, [session, loading])
+
   if (loading) {
     return (
       <div style={{ 
