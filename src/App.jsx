@@ -1,18 +1,17 @@
-// src/App.jsx - ULTRA SIMPLE FIX
+// src/App.jsx - WITH LAYOUT (test version)
 import React, { useEffect, useState } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { supabase } from './lib/supabase'
+import Layout from './components/Layout'
 import Login from './pages/Login'
 import Home from './pages/Home'
 
-// Remove Layout and all other imports for testing
 function App() {
   const [session, setSession] = useState(null)
   const [loading, setLoading] = useState(true)
   const [initialized, setInitialized] = useState(false)
 
   useEffect(() => {
-    // Only run once
     if (initialized) return
     setInitialized(true)
     
@@ -67,7 +66,13 @@ function App() {
           !session ? <Login /> : <Navigate to="/" replace />
         } />
         <Route path="/" element={
-          session ? <Home session={session} /> : <Navigate to="/login" replace />
+          session ? (
+            <Layout session={session}>
+              <Home session={session} />
+            </Layout>
+          ) : (
+            <Navigate to="/login" replace />
+          )
         } />
       </Routes>
     </BrowserRouter>
