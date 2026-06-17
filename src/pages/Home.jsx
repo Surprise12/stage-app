@@ -1,4 +1,4 @@
-// src/pages/Home.jsx - FIXED VERSION
+// src/pages/Home.jsx - WITH INLINE STYLES FALLBACK
 import React, { useState, useEffect, useCallback, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
@@ -25,7 +25,7 @@ export default function Home({ session }) {
 
   console.log('🏠 Home component rendering with session:', session?.user?.email)
 
-  // Mock data - memoized to prevent recreation
+  // Mock data
   const mockStories = React.useMemo(() => [
     { id: 1, name: 'Sarah Chen', avatar: 'S', image: 'https://picsum.photos/400/700?random=1', time: '5 min ago' },
     { id: 2, name: 'Marcus Webb', avatar: 'M', image: 'https://picsum.photos/400/700?random=2', time: '15 min ago' },
@@ -45,15 +45,12 @@ export default function Home({ session }) {
     { id: 3, title: 'Tech Talk', host: 'David Kim', avatar: 'D', viewers: '5,621', image: 'https://picsum.photos/400/700?random=22', status: 'LIVE' },
   ], [])
 
-  // Load posts with useCallback to prevent unnecessary re-renders
   const loadPosts = useCallback(async () => {
     if (!session?.user?.id) {
-      console.log('⚠️ No session user ID, skipping loadPosts')
       setLoading(false)
       return
     }
     
-    console.log('📝 Loading posts for user:', session.user.id)
     setLoading(true)
     try {
       const { data, error } = await supabase
@@ -71,37 +68,30 @@ export default function Home({ session }) {
         .order('created_at', { ascending: false })
       
       if (error) {
-        console.error('❌ Supabase error loading posts:', error)
-        // If table doesn't exist, just show empty state
         if (error.code === '42P01') {
-          console.log('📝 Posts table doesn\'t exist yet, showing empty state')
           setPosts([])
         }
       } else if (data) {
-        console.log('📝 Posts loaded:', data.length)
         setPosts(data)
       }
     } catch (error) {
-      console.error('❌ Error loading posts:', error)
+      console.error('Error loading posts:', error)
     } finally {
       setLoading(false)
     }
   }, [session?.user?.id])
 
   const loadStories = useCallback(() => {
-    console.log('📚 Loading stories...')
     setStories(mockStories)
     setReels(mockReels)
     setLiveStreams(mockLiveStreams)
   }, [mockStories, mockReels, mockLiveStreams])
 
   useEffect(() => {
-    console.log('🏠 Home useEffect triggered')
     if (session?.user?.id) {
       loadPosts()
       loadStories()
     } else {
-      console.log('⚠️ No session, setting loading to false')
       setLoading(false)
     }
   }, [session?.user?.id, loadPosts, loadStories])
@@ -163,7 +153,6 @@ export default function Home({ session }) {
       
       if (error) throw error
       
-      // Reset form
       setNewPostContent('')
       setSelectedImage(null)
       setImagePreview(null)
@@ -171,8 +160,6 @@ export default function Home({ session }) {
       setPostTags('')
       setPostPrivacy('public')
       setShowCreatePost(false)
-      
-      // Reload posts
       await loadPosts()
     } catch (error) {
       console.error('Create post error:', error)
@@ -273,58 +260,236 @@ export default function Home({ session }) {
            `https://ui-avatars.com/api/?name=${(session?.user?.email?.[0] || 'U')}&background=7c3aed&color=fff`
   }
 
+  // ✅ ADD INLINE STYLES FALLBACK
+  const styles = {
+    feedContainer: {
+      maxWidth: '680px',
+      margin: '0 auto',
+      padding: '20px',
+      width: '100%',
+      background: '#f4f6fb',
+      minHeight: '100vh'
+    },
+    storiesWrapper: {
+      background: 'white',
+      borderRadius: '16px',
+      padding: '16px',
+      marginBottom: '20px',
+      border: '1px solid #ddd'
+    },
+    storiesHeader: {
+      display: 'flex',
+      gap: '8px',
+      marginBottom: '12px'
+    },
+    storyTab: {
+      padding: '6px 16px',
+      borderRadius: '30px',
+      fontWeight: 'bold',
+      fontSize: '13px',
+      color: '#666',
+      cursor: 'pointer',
+      transition: 'all 0.2s'
+    },
+    storyTabActive: {
+      background: '#000',
+      color: 'white'
+    },
+    storiesRow: {
+      display: 'flex',
+      gap: '8px',
+      overflowX: 'auto',
+      padding: '4px 0'
+    },
+    storyCard: {
+      minWidth: '110px',
+      height: '180px',
+      borderRadius: '16px',
+      position: 'relative',
+      cursor: 'pointer',
+      overflow: 'hidden',
+      border: '1px solid #ccc',
+      backgroundSize: 'cover',
+      backgroundPosition: 'center',
+      transition: 'transform 0.2s'
+    },
+    storyAvatar: {
+      position: 'absolute',
+      top: '10px',
+      left: '10px',
+      width: '36px',
+      height: '36px',
+      borderRadius: '50%',
+      border: '2px solid white',
+      background: '#666',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      color: 'white',
+      fontWeight: 'bold',
+      fontSize: '14px'
+    },
+    storyPreview: {
+      position: 'absolute',
+      bottom: '10px',
+      left: '10px',
+      right: '10px',
+      color: 'white',
+      fontWeight: 'bold',
+      fontSize: '12px',
+      textShadow: '0 1px 3px rgba(0,0,0,0.5)'
+    },
+    createPostBox: {
+      background: 'white',
+      borderRadius: '16px',
+      padding: '16px',
+      marginBottom: '20px',
+      border: '1px solid #ddd',
+      cursor: 'pointer',
+      transition: 'all 0.2s'
+    },
+    postInputRow: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: '12px',
+      paddingBottom: '12px',
+      borderBottom: '1px solid #eee'
+    },
+    postAvatar: {
+      width: '44px',
+      height: '44px',
+      borderRadius: '50%',
+      background: 'linear-gradient(135deg, #7c3aed, #ec4899)',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      color: 'white',
+      fontWeight: 'bold',
+      fontSize: '18px',
+      cursor: 'pointer',
+      overflow: 'hidden',
+      flexShrink: 0
+    },
+    postInput: {
+      flex: 1,
+      background: '#f0f2f5',
+      borderRadius: '40px',
+      padding: '12px 20px',
+      color: '#333',
+      fontSize: '14px',
+      border: '1px solid #ddd',
+      fontWeight: 'bold'
+    },
+    postActionsRow: {
+      display: 'flex',
+      justifyContent: 'space-around',
+      marginTop: '12px'
+    },
+    postAction: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: '8px',
+      padding: '8px 20px',
+      borderRadius: '40px',
+      cursor: 'pointer',
+      color: '#555',
+      fontWeight: 'bold',
+      fontSize: '13px',
+      transition: 'all 0.2s'
+    },
+    postCard: {
+      background: 'white',
+      borderRadius: '16px',
+      padding: '20px',
+      marginBottom: '20px',
+      border: '1px solid #ddd',
+      textAlign: 'center'
+    },
+    spinner: {
+      width: '40px',
+      height: '40px',
+      border: '3px solid #f3f3f3',
+      borderTop: '3px solid #7c3aed',
+      borderRadius: '50%',
+      animation: 'spin 1s linear infinite',
+      margin: '40px auto'
+    },
+    modal: {
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      background: 'rgba(0,0,0,0.8)',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      zIndex: 2000
+    },
+    modalContent: {
+      background: 'white',
+      borderRadius: '24px',
+      padding: '24px',
+      maxWidth: '550px',
+      width: '90%',
+      maxHeight: '80vh',
+      overflowY: 'auto'
+    }
+  }
+
   return (
-    <div className="feed-container">
+    <div style={styles.feedContainer}>
       {/* Stories Row */}
-      <div className="stories-wrapper">
-        <div className="stories-header">
+      <div style={styles.storiesWrapper}>
+        <div style={styles.storiesHeader}>
           <div 
-            className={`story-tab ${activeStoryTab === 'stories' ? 'active' : ''}`} 
+            style={{ ...styles.storyTab, ...(activeStoryTab === 'stories' ? styles.storyTabActive : {}) }}
             onClick={() => setActiveStoryTab('stories')}
           >
             Stories
           </div>
           <div 
-            className={`story-tab ${activeStoryTab === 'reels' ? 'active' : ''}`} 
+            style={{ ...styles.storyTab, ...(activeStoryTab === 'reels' ? styles.storyTabActive : {}) }}
             onClick={() => setActiveStoryTab('reels')}
           >
             Reels
           </div>
           <div 
-            className={`story-tab ${activeStoryTab === 'live' ? 'active' : ''}`} 
+            style={{ ...styles.storyTab, ...(activeStoryTab === 'live' ? styles.storyTabActive : {}) }}
             onClick={() => setActiveStoryTab('live')}
           >
             Live
           </div>
-          <div className="story-tab" onClick={() => alert('Audio Rooms coming soon')}>Rooms</div>
+          <div style={styles.storyTab} onClick={() => alert('Audio Rooms coming soon')}>Rooms</div>
         </div>
         
-        <div className="stories-row">
+        <div style={styles.storiesRow}>
           {renderStoriesContent()}
         </div>
       </div>
 
       {/* Create Post */}
-      <div className="create-post-box" onClick={() => setShowCreatePost(true)}>
-        <div className="post-input-row">
-          <div className="post-avatar">
+      <div style={styles.createPostBox} onClick={() => setShowCreatePost(true)}>
+        <div style={styles.postInputRow}>
+          <div style={styles.postAvatar}>
             <img 
               src={getUserAvatar()} 
               alt="avatar" 
+              style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }}
             />
           </div>
-          <div className="post-input">
+          <div style={styles.postInput}>
             What's on your mind, {getUserDisplayName()}?
           </div>
         </div>
-        <div className="post-actions-row">
-          <div className="post-action" onClick={(e) => { e.stopPropagation(); alert('Go Live feature coming soon'); }} title="Go Live & Notify Friends">
+        <div style={styles.postActionsRow}>
+          <div style={styles.postAction} onClick={(e) => { e.stopPropagation(); alert('Go Live feature coming soon'); }}>
             <i className="fas fa-circle" style={{ color: '#f5576c' }}></i> Live
           </div>
-          <div className="post-action" onClick={(e) => { e.stopPropagation(); fileInputRef.current?.click(); }}>
+          <div style={styles.postAction} onClick={(e) => { e.stopPropagation(); fileInputRef.current?.click(); }}>
             <i className="fas fa-image"></i> Photo
           </div>
-          <div className="post-action" onClick={(e) => { e.stopPropagation(); alert('Upload music coming soon'); }}>
+          <div style={styles.postAction} onClick={(e) => { e.stopPropagation(); alert('Upload music coming soon'); }}>
             <i className="fas fa-music"></i> Music
           </div>
         </div>
@@ -339,17 +504,17 @@ export default function Home({ session }) {
 
       {/* Create Post Modal */}
       {showCreatePost && (
-        <div className="modal active" onClick={() => setShowCreatePost(false)}>
-          <div className="modal-content" style={{ maxWidth: '550px' }} onClick={(e) => e.stopPropagation()}>
-            <div className="modal-title">Create Post</div>
+        <div style={styles.modal} onClick={() => setShowCreatePost(false)}>
+          <div style={styles.modalContent} onClick={(e) => e.stopPropagation()}>
+            <div style={{ fontSize: '24px', fontWeight: 'bold', marginBottom: '20px' }}>Create Post</div>
             
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
-              <div className="post-avatar" style={{ width: '40px', height: '40px' }}>
+              <div style={{ ...styles.postAvatar, width: '40px', height: '40px' }}>
                 <img src={getUserAvatar()} alt="" style={{ width: '100%', height: '100%', borderRadius: '50%' }} />
               </div>
               <div>
                 <div style={{ fontWeight: 'bold' }}>{getUserDisplayName()}</div>
-                <select className="form-select" style={{ padding: '4px 8px', fontSize: '12px', width: 'auto' }} value={postPrivacy} onChange={(e) => setPostPrivacy(e.target.value)}>
+                <select style={{ padding: '4px 8px', fontSize: '12px', width: 'auto' }} value={postPrivacy} onChange={(e) => setPostPrivacy(e.target.value)}>
                   <option value="public">🌍 Public</option>
                   <option value="friends">👥 Friends</option>
                   <option value="private">🔒 Only Me</option>
@@ -358,7 +523,7 @@ export default function Home({ session }) {
             </div>
             
             <textarea 
-              className="form-textarea" 
+              style={{ width: '100%', padding: '12px 16px', border: '1px solid #ddd', borderRadius: '12px', marginBottom: '16px', fontSize: '14px', minHeight: '100px' }}
               placeholder="What's on your mind?" 
               rows="4"
               value={newPostContent}
@@ -374,25 +539,24 @@ export default function Home({ session }) {
             
             <div style={{ marginBottom: '16px' }}>
               <input 
-                className="form-input" 
+                style={{ width: '100%', padding: '12px 16px', border: '1px solid #ddd', borderRadius: '12px', marginBottom: '16px', fontSize: '14px' }}
                 placeholder="Add location" 
                 value={postLocation}
                 onChange={(e) => setPostLocation(e.target.value)}
               />
               <input 
-                className="form-input" 
+                style={{ width: '100%', padding: '12px 16px', border: '1px solid #ddd', borderRadius: '12px', fontSize: '14px' }}
                 placeholder="Tags (comma separated)" 
-                style={{ marginTop: '8px' }}
                 value={postTags}
                 onChange={(e) => setPostTags(e.target.value)}
               />
             </div>
             
             <div style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
-              <button className="secondary-btn" style={{ flex: 1 }} onClick={() => modalFileInputRef.current?.click()}>
+              <button style={{ flex: 1, padding: '10px 24px', border: '1px solid #ddd', borderRadius: '40px', cursor: 'pointer', fontWeight: 'bold' }} onClick={() => modalFileInputRef.current?.click()}>
                 <i className="fas fa-image"></i> Photo
               </button>
-              <button className="secondary-btn" style={{ flex: 1 }} onClick={() => alert('Video upload coming soon')}>
+              <button style={{ flex: 1, padding: '10px 24px', border: '1px solid #ddd', borderRadius: '40px', cursor: 'pointer', fontWeight: 'bold' }} onClick={() => alert('Video upload coming soon')}>
                 <i className="fas fa-video"></i> Video
               </button>
               <input 
@@ -404,12 +568,11 @@ export default function Home({ session }) {
               />
             </div>
             
-            <button className="apply-btn" onClick={createPost} disabled={creatingPost}>
+            <button style={{ width: '100%', background: '#000', color: 'white', border: 'none', padding: '14px', borderRadius: '40px', fontWeight: 'bold', cursor: 'pointer', fontSize: '14px' }} onClick={createPost} disabled={creatingPost}>
               {creatingPost ? 'Posting...' : 'Post'}
             </button>
             <button 
-              className="secondary-btn" 
-              style={{ marginTop: '8px', width: '100%' }} 
+              style={{ marginTop: '8px', width: '100%', padding: '14px', border: '1px solid #ddd', borderRadius: '40px', cursor: 'pointer', fontWeight: 'bold' }}
               onClick={() => {
                 setShowCreatePost(false)
                 setNewPostContent('')
@@ -428,9 +591,9 @@ export default function Home({ session }) {
       
       {/* Posts Feed */}
       {loading ? (
-        <div className="spinner"></div>
+        <div style={styles.spinner}></div>
       ) : posts.length === 0 ? (
-        <div className="post-card" style={{ textAlign: 'center' }}>
+        <div style={styles.postCard}>
           <p style={{ color: '#888' }}>No posts yet. Be the first to post!</p>
         </div>
       ) : (

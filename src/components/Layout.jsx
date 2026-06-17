@@ -1,4 +1,4 @@
-// src/components/Layout.jsx - FULL FIXED VERSION
+// src/components/Layout.jsx - FIXED WITH INLINE STYLES
 import React, { useState, useEffect } from 'react'
 import { useLocation } from 'react-router-dom'
 import LeftSidebar from './LeftSidebar'
@@ -44,26 +44,78 @@ export default function Layout({ children, session }) {
     return <>{children}</>
   }
 
+  // Inline styles as fallback
+  const styles = {
+    mainContainer: {
+      display: 'flex',
+      marginTop: 0,
+      minHeight: 'calc(100vh - 0px)',
+      maxWidth: '1400px',
+      margin: '0 auto',
+      width: '100%'
+    },
+    feedContainer: {
+      flex: 1,
+      maxWidth: '680px',
+      margin: '0 auto',
+      padding: '20px',
+      width: '100%',
+      background: '#f4f6fb',
+      minHeight: '100vh'
+    },
+    mobileMenuButton: {
+      position: 'fixed',
+      bottom: '20px',
+      right: '20px',
+      zIndex: 1000,
+      background: 'linear-gradient(135deg, #7c3aed, #ec4899)',
+      width: '50px',
+      height: '50px',
+      borderRadius: '50%',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      cursor: 'pointer',
+      boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+      transition: 'transform 0.2s'
+    },
+    mobileMenuOverlay: {
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      background: 'rgba(0,0,0,0.8)',
+      zIndex: 999,
+      display: 'flex',
+      justifyContent: 'flex-start'
+    },
+    mobileMenuContent: {
+      width: '280px',
+      height: '100%',
+      background: 'white',
+      overflowY: 'auto',
+      padding: '20px'
+    },
+    mobileBottomNav: {
+      position: 'fixed',
+      bottom: 0,
+      left: 0,
+      right: 0,
+      background: 'white',
+      borderTop: '1px solid #ddd',
+      display: 'flex',
+      justifyContent: 'space-around',
+      padding: '10px 0',
+      zIndex: 100
+    }
+  }
+
   return (
     <>
       {/* Mobile Menu Toggle Button */}
       {isMobile && (
-        <div style={{
-          position: 'fixed',
-          bottom: '20px',
-          right: '20px',
-          zIndex: 1000,
-          background: 'linear-gradient(135deg, #7c3aed, #ec4899)',
-          width: '50px',
-          height: '50px',
-          borderRadius: '50%',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          cursor: 'pointer',
-          boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
-          transition: 'transform 0.2s'
-        }}
+        <div style={styles.mobileMenuButton}
         onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
         onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.05)'}
         onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
@@ -74,24 +126,8 @@ export default function Layout({ children, session }) {
 
       {/* Mobile Menu Overlay */}
       {isMobile && isMobileMenuOpen && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          background: 'rgba(0,0,0,0.8)',
-          zIndex: 999,
-          display: 'flex',
-          justifyContent: 'flex-start'
-        }} onClick={() => setIsMobileMenuOpen(false)}>
-          <div style={{
-            width: '280px',
-            height: '100%',
-            background: 'white',
-            overflowY: 'auto',
-            padding: '20px'
-          }} onClick={(e) => e.stopPropagation()}>
+        <div style={styles.mobileMenuOverlay} onClick={() => setIsMobileMenuOpen(false)}>
+          <div style={styles.mobileMenuContent} onClick={(e) => e.stopPropagation()}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
               <div className="circle-logo" style={{ margin: '0' }}>S</div>
               <button onClick={() => setIsMobileMenuOpen(false)} style={{ background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer' }}>
@@ -103,12 +139,12 @@ export default function Layout({ children, session }) {
         </div>
       )}
 
-      <div className="main-container">
+      <div style={styles.mainContainer}>
         {/* Left Sidebar - Desktop */}
         {!isMobile && <LeftSidebar session={session} />}
         
         {/* Main Feed Container */}
-        <div className="feed-container">
+        <div style={styles.feedContainer}>
           {children}
         </div>
         
@@ -118,18 +154,7 @@ export default function Layout({ children, session }) {
 
       {/* Mobile Bottom Navigation Bar */}
       {isMobile && (
-        <div style={{
-          position: 'fixed',
-          bottom: 0,
-          left: 0,
-          right: 0,
-          background: 'white',
-          borderTop: '1px solid #ddd',
-          display: 'flex',
-          justifyContent: 'space-around',
-          padding: '10px 0',
-          zIndex: 100
-        }}>
+        <div style={styles.mobileBottomNav}>
           <div className="header-icon" onClick={() => window.location.href = '/'}>
             <i className="fas fa-home"></i>
           </div>
@@ -153,67 +178,6 @@ export default function Layout({ children, session }) {
           </div>
         </div>
       )}
-
-      <style>{`
-        .main-container {
-          display: flex;
-          margin-top: 0;
-          min-height: calc(100vh - 0px);
-          max-width: 1400px;
-          margin: 0 auto;
-        }
-        
-        .feed-container {
-          flex: 1;
-          max-width: 680px;
-          margin: 0 auto;
-          padding: 20px;
-          width: 100%;
-        }
-
-        @media (max-width: 768px) {
-          .main-container {
-            margin-bottom: 60px;
-          }
-          .feed-container {
-            padding: 12px;
-          }
-          .create-post-box {
-            margin-bottom: 12px;
-          }
-          .post-card {
-            margin-bottom: 12px;
-            padding: 12px;
-          }
-          .stories-wrapper {
-            padding: 12px;
-          }
-          .story-card {
-            min-width: 80px;
-            height: 140px;
-          }
-          .story-avatar {
-            width: 28px;
-            height: 28px;
-            font-size: 12px;
-          }
-          .story-preview {
-            font-size: 10px;
-          }
-        }
-
-        @media (max-width: 991px) {
-          .right-sidebar {
-            display: none;
-          }
-        }
-
-        @media (max-width: 767px) {
-          .left-sidebar {
-            display: none;
-          }
-        }
-      `}</style>
     </>
   )
 }
