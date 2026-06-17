@@ -1,5 +1,5 @@
-// src/App.jsx - COMPLETE FIX
-import React, { useEffect, useState } from 'react'
+// src/App.jsx - FIXED with proper cleanup
+import React, { useEffect, useState, useRef } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { Analytics } from '@vercel/analytics/react'
 import { supabase } from './lib/supabase'
@@ -31,8 +31,16 @@ import AudioUploader from './components/AudioUploader'
 function App() {
   const [session, setSession] = useState(null)
   const [loading, setLoading] = useState(true)
+  const initialized = useRef(false) // ✅ Prevents re-initialization
 
   useEffect(() => {
+    // ✅ Prevent multiple initializations
+    if (initialized.current) {
+      console.log('🔍 App: Already initialized, skipping...')
+      return
+    }
+    initialized.current = true
+    
     console.log('🔍 App: Initializing...')
     
     let isMounted = true
@@ -64,7 +72,7 @@ function App() {
       isMounted = false
       subscription.unsubscribe()
     }
-  }, [])
+  }, []) // ✅ Empty dependency array - runs once
 
   // Safety check for redirect loops
   useEffect(() => {
