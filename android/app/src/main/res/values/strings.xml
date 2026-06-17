@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">SocialVibe</string>
+    <string name="title_activity_main">SocialVibe</string>
+    <string name="package_name">com.socialvibe.app</string>
+    <string name="custom_url_scheme">com.socialvibe.app</string>
+</resources>

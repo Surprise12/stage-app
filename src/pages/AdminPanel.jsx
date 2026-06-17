@@ -740,13 +740,13 @@ export default function AdminPanel({ session }) {
       color: '#1f2937',
       marginBottom: '4px'
     },
-    reportBy: {
-      fontWeight: '400',
-      fontSize: '13px',
-      color: '#6b7280',
-      marginLeft: '8px',
-      fontWeight: '700'
-    },
+// In AdminPanel.jsx, find the reportBy style and remove duplicate fontWeight
+reportBy: {
+  fontWeight: '700',  // Keep only this one
+  fontSize: '13px',
+  color: '#6b7280',
+  marginLeft: '8px'
+},
     reportReason: {
       fontSize: '13px',
       color: '#4b5563',

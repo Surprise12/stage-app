@@ -1,4 +1,4 @@
-// src/components/LeftSidebar.jsx - FIXED WITH INLINE STYLES
+// src/components/LeftSidebar.jsx - UPDATED WITH GROUPS & PAGES
 import React, { useState, useEffect } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
@@ -373,8 +373,14 @@ export default function LeftSidebar({ session, isMobile = false, onNavigate = nu
     }
   }
 
+  // ✅ UPDATED: Menu items with GROUPS and PAGES added
   const menuItems = [
     { icon: '🏠', label: 'Home', path: '/', color: '#7c3aed' },
+    { icon: '🔍', label: 'Search', path: '/search', color: '#3b82f6' },
+    { icon: '👥', label: 'Friends', path: '/friends', color: '#10b981' },
+    { icon: '📬', label: 'Notifications', path: '/notifications', color: '#f59e0b' },
+    { icon: '📁', label: 'Groups', path: '/groups', color: '#8b5cf6' },
+    { icon: '📄', label: 'Pages', path: '/pages', color: '#ec4899' },
     { icon: '🎵', label: 'Music Videos', path: '/music', color: '#ec4899' },
     { icon: '🎧', label: 'Beats', path: '/beats', color: '#f59e0b' },
     { icon: '🤝', label: 'Collab Finder', path: '/collab', color: '#10b981' },
@@ -387,7 +393,6 @@ export default function LeftSidebar({ session, isMobile = false, onNavigate = nu
     { icon: '🛒', label: 'Marketplace', path: '/marketplace', color: '#22c55e' },
     { icon: '📅', label: 'Events', path: '/events', color: '#a855f7' },
     { icon: '💬', label: 'Messages', path: '/messages', color: '#3b82f6' },
-    { icon: '🔔', label: 'Notifications', path: '/notifications', color: '#f59e0b' },
   ]
 
   const quickProfiles = [
