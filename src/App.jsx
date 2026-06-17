@@ -1,4 +1,4 @@
-// src/App.jsx - FULL VERSION WITH ALL ROUTES
+// src/App.jsx - FIXED WITH GLOBAL FLAG
 import React, { useEffect, useState } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { Analytics } from '@vercel/analytics/react'
@@ -28,17 +28,22 @@ import RoyaltySplit from './components/RoyaltySplit'
 import FanSubscriptions from './components/FanSubscriptions'
 import AudioUploader from './components/AudioUploader'
 
+// ✅ Use a global variable to track initialization
+let appInitialized = false
+
 function App() {
   const [session, setSession] = useState(null)
   const [loading, setLoading] = useState(true)
-  const [initialized, setInitialized] = useState(false)
 
   useEffect(() => {
-    // Only run once
-    if (initialized) return
-    setInitialized(true)
+    // ✅ Check global flag instead of state
+    if (appInitialized) {
+      console.log('🔍 App: Already initialized, skipping...')
+      return
+    }
+    appInitialized = true
     
-    console.log('🔍 App: Initializing...')
+    console.log('🔍 App: Initializing ONCE...')
     
     let isMounted = true
 
@@ -69,7 +74,7 @@ function App() {
       isMounted = false
       subscription.unsubscribe()
     }
-  }, [initialized])
+  }, []) // ✅ Empty dependency array - runs once
 
   // Safety check for redirect loops
   useEffect(() => {
